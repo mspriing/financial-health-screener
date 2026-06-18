@@ -1,4 +1,4 @@
-# 📊 Financial Health & Red-Flag Screener
+# Financial Health & Red-Flag Screener
 
 A first-pass screen that reads a company's financial statements and returns one call:
 

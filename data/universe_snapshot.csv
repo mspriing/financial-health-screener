@@ -201,7 +201,7 @@ FIS,"Fidelity National Information Services, Inc.",Technology,0.02,Distress,6,-2
 FITB,Fifth Third Bancorp,Financial Services,,,,,,1.4964675,,47798874112,2026-06-19
 FSLR,"First Solar, Inc.",Technology,6.24,Safe,7,-2.59,False,2.803098,11.69,27690731520,2026-06-19
 FE,FirstEnergy Corp.,Utilities,0.76,Distress,5,,,2.1233315,11.035,26868127744,2026-06-19
-FISV,"Fiserv, Inc.",Financials,1.27,Distress,5,-2.57,False,0.9735953,,25521534976,2026-06-19
+FISV,"Fiserv, Inc.",Financial Services,1.27,Distress,5,-2.57,False,0.9735953,,25521534976,2026-06-19
 F,Ford Motor Company,Consumer Cyclical,0.81,Distress,2,1.35,True,1.4959038,25.756,56024780800,2026-06-19
 FTNT,"Fortinet, Inc.",Technology,8.37,Safe,6,-2.64,False,107.36646,44.459,106036199424,2026-06-19
 FTV,Fortive Corporation,Technology,3.26,Safe,6,-2.69,False,3.0660636,18.452,18605668352,2026-06-19

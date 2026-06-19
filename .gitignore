@@ -5,6 +5,7 @@ venv/
 .env
 .DS_Store
 .streamlit/secrets.toml
+build_universe.log
 LINKEDIN.md
 DESIGN_PROMPT.md
 DESIGN_PROMPT_2.md

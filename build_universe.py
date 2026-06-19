@@ -41,6 +41,10 @@ SLEEP_SECONDS = 0.7          # polite delay between tickers (rate limits)
 CSV_COLUMNS = ["tr", "name", "sector", "z", "zone", "f_score", "m_score", "m_flag",
                "price_to_book", "ev_ebitda", "market_cap", "as_of_date"]
 
+# yfinance occasionally returns inconsistent sector labels for a handful of names
+# (e.g. "Financials" instead of "Financial Services"). Normalize so peers group together.
+SECTOR_ALIASES = {"Financials": "Financial Services"}
+
 
 def get_sp500() -> list[tuple[str, str]]:
     """Return [(ticker, gics_sector), ...] from the Wikipedia S&P 500 list."""
@@ -75,8 +79,9 @@ def snapshot_one(ticker: str, gics_sector: str, as_of: str) -> dict:
     return {
         "tr": ticker,
         "name": info.get("longName") or payload["meta"].get("name") or ticker,
-        # prefer yfinance's sector; fall back to the Wikipedia GICS sector
-        "sector": info.get("sector") or gics_sector,
+        # prefer yfinance's sector; fall back to the Wikipedia GICS sector; normalize aliases
+        "sector": SECTOR_ALIASES.get(info.get("sector") or gics_sector,
+                                     info.get("sector") or gics_sector),
         "z": altman.z if altman is not None else None,
         "zone": altman.zone if altman is not None else None,
         "f_score": piotroski.score if piotroski is not None else None,

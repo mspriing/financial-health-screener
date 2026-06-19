@@ -259,6 +259,20 @@ def fetch_live(ticker: str) -> dict:
     except Exception:
         pass
 
+    # Sector — needed to benchmark the company against its peers (see benchmark.py).
+    # Prefer yfinance's own classification; fall back to the committed snapshot by ticker.
+    sector = None
+    try:
+        sector = ((getattr(t, "info", {}) or {}).get("sector") or "").strip() or None
+    except Exception:
+        sector = None
+    if not sector:
+        try:
+            from benchmark import load_universe, lookup_sector
+            sector = lookup_sector(load_universe(), ticker.upper())
+        except Exception:
+            sector = None
+
     # Banks / insurers don't report a current/non-current split -> classic Z & M don't apply.
     is_financial = (ca[0] is None or cl[0] is None)
 
@@ -266,7 +280,7 @@ def fetch_live(ticker: str) -> dict:
         "meta": {"name": name, "ticker": ticker.upper(),
                  "source": "Yahoo Finance (yfinance)",
                  "period_curr": "Latest annual", "period_prior": "Prior annual",
-                 "is_financial": is_financial},
+                 "is_financial": is_financial, "sector": sector},
         "market_value_equity": float(mve) if mve else 0.0,
         "curr": curr, "prior": prior,
     }

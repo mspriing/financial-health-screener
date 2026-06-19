@@ -14,6 +14,7 @@ import streamlit.components.v1 as components
 
 from data import PRESETS, blank_payload, fetch_live, run_models, LINE_ITEMS
 from commentary import explain
+from benchmark import load_universe, sector_stats, position
 
 st.set_page_config(page_title="Financial Health & Red-Flag Screener",
                    layout="wide", initial_sidebar_state="collapsed")
@@ -254,6 +255,48 @@ h2,h3,h4{font-family:'Sora','Inter',sans-serif;color:var(--text);letter-spacing:
 .why .woverall .wtag{color:var(--accent);}
 .why .woverall .wtext{color:var(--text);font-weight:500;}
 
+/* ---- sector benchmark — where the company lands vs its peers ---- */
+.bench{padding:4px 26px 14px;}
+.bench .intro{color:var(--muted);font-size:.9rem;line-height:1.58;margin:0 0 4px;}
+.bench .intro b{color:var(--text);font-weight:600;}
+.bench .brow{padding:20px 0;border-bottom:1px solid var(--border);}
+.bench .brow:last-child{border-bottom:none;}
+.bench .bhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;
+  gap:8px 16px;margin-bottom:6px;}
+.bench .bname{font-family:'Sora',sans-serif;font-size:.98rem;font-weight:600;color:var(--text);
+  letter-spacing:-.01em;}
+.bench .bname .sub{color:var(--faint);font-weight:600;font-size:.7rem;margin-left:9px;
+  text-transform:uppercase;letter-spacing:.12em;}
+.bench .bvals{font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums lining-nums;}
+.bench .bvals b{color:var(--text);font-weight:600;}
+.bench .bvals .sep{color:var(--faint);margin:0 9px;}
+/* the bar: a neutral rail, an accent interquartile band (p25–p75), a median tick,
+   and the company's pointer — color carries no sole meaning (read line + labels back it). */
+.bench .track{position:relative;height:8px;border-radius:6px;background:rgba(255,255,255,.07);
+  margin:26px 0 11px;}
+.bench .iqr{position:absolute;top:0;bottom:0;border-radius:6px;background:var(--accent-soft);
+  border:1px solid var(--accent-line);animation:trk-in .6s var(--ease) both;}
+.bench .med{position:absolute;top:-4px;bottom:-4px;width:2px;border-radius:2px;
+  background:var(--muted);}
+.bench .med .lbl{position:absolute;top:-19px;left:50%;transform:translateX(-50%);white-space:nowrap;
+  font-size:.66rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);}
+.bench .you{position:absolute;top:50%;width:15px;height:15px;border-radius:50%;
+  transform:translate(-50%,-50%);background:var(--text);
+  box-shadow:0 0 0 3px var(--bg-2),0 2px 7px rgba(0,0,0,.55);animation:ptr-in .55s var(--ease) both;}
+.bench .you.good{background:var(--green);}
+.bench .you.bad{background:var(--amber);}
+.bench .scale{display:flex;justify-content:space-between;font-size:.7rem;color:var(--faint);
+  font-variant-numeric:tabular-nums lining-nums;}
+.bench .read{margin:13px 0 0;color:var(--muted);font-size:.93rem;line-height:1.55;}
+.bench .read b{color:var(--text);font-weight:600;}
+.bench .read .pct{color:var(--accent);font-weight:600;}
+.bench .thin{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--border);
+  color:var(--faint);font-size:.89rem;line-height:1.55;}
+.bench .thin:last-child{border-bottom:none;}
+.bench .thin .tg{flex:0 0 86px;font-family:'Sora',sans-serif;font-size:.7rem;font-weight:600;
+  text-transform:uppercase;letter-spacing:.11em;padding-top:2px;}
+.bench .thin b{color:var(--muted);font-weight:600;}
+
 /* ---- inputs / controls ---- */
 .stTextInput input,.stNumberInput input,[data-baseweb="select"]>div{
   background:var(--surface) !important;border:1px solid var(--border) !important;
@@ -384,6 +427,108 @@ def fin_table(headers, rows):
         tds = "".join(f'<td class="{c}">{v}</td>' for v, c in cells)
         body += f"<tr>{tds}</tr>"
     return f'<table class="fin-table"><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>'
+
+
+# ---- sector benchmarking (Live-ticker mode only) --------------------------
+@st.cache_data(show_spinner=False)
+def load_peers():
+    """Load the committed S&P 500 snapshot once (cached across reruns)."""
+    return load_universe()
+
+
+# Per-metric display config. higher_better=False for the M-Score: a HIGH M means MORE
+# earnings red flags than peers, i.e. worse — so the read line is phrased the other way.
+_BENCH_META = {
+    "z":       {"tag": "Altman Z", "short": "Z", "dec": 2, "higher_better": True,
+                "na": "isn’t computed for {name} — banks and insurers lack the working-capital "
+                      "structure the Altman model reads."},
+    "f_score": {"tag": "Piotroski F", "short": "F", "dec": 0, "higher_better": True,
+                "na": "isn’t computed for {name} — its statements are missing inputs the "
+                      "Piotroski tests need."},
+    "m_score": {"tag": "Beneish M", "short": "M", "dec": 2, "higher_better": False,
+                "na": "isn’t computed for {name} — its statements are missing inputs the "
+                      "Beneish indices need."},
+}
+
+
+def _ordinal(n: int) -> str:
+    n = int(round(n))
+    if 10 <= n % 100 <= 20:
+        suf = "th"
+    else:
+        suf = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suf}"
+
+
+def _bench_read(short, pct, higher_better, sector):
+    """
+    One-line plain-English read of the percentile, oriented by metric direction. `rank`
+    is the position in the *good* direction (for the M-Score, lower is better, so we
+    flip it). The M wording stays sector-relative — "less clean than peers", not an
+    absolute fraud call — since the actual flag is the Beneish threshold, not the rank.
+    """
+    rank = pct if higher_better else 100 - pct
+    if higher_better:
+        tail = ("stronger than most peers" if rank >= 75 else
+                "a little ahead of the sector" if rank >= 55 else
+                "right around the sector median" if rank > 45 else
+                "a little behind the sector" if rank > 25 else
+                "weaker than most peers")
+    else:
+        tail = ("a cleaner earnings reading than most peers" if rank >= 75 else
+                "a little cleaner than the sector" if rank >= 55 else
+                "right around the sector median" if rank > 45 else
+                "a little less clean than the sector" if rank > 25 else
+                "a less clean earnings reading than most peers")
+    return (f'{short} in the <span class="pct">{_ordinal(pct)} percentile</span> of {sector} '
+            f'&mdash; {tail}.')
+
+
+def bench_bar(metric, value, stat, sector):
+    """Render one metric's benchmark row: company value, sector median, p25–p75 bar + read."""
+    cfg = _BENCH_META[metric]
+    dec = cfg["dec"]
+    p25, p75, med = stat.p25, stat.p75, stat.median
+    # display domain: the IQR, padded, always wide enough to show the company's marker
+    lo = min(p25, value); hi = max(p75, value)
+    span = (hi - lo) or 1.0
+    pad = span * 0.14
+    d0, d1 = lo - pad, hi + pad
+    dom = (d1 - d0) or 1.0
+    def x(v):
+        return max(0.0, min(100.0, (v - d0) / dom * 100.0))
+    iqr_l, iqr_w = x(p25), x(p75) - x(p25)
+
+    pct = position(value, stat.values)
+    rank = pct if cfg["higher_better"] else 100 - pct
+    tone = "good" if rank >= 60 else "bad" if rank <= 40 else ""
+
+    return (
+        f'<div class="brow">'
+        f'<div class="bhead">'
+        f'<span class="bname">{cfg["tag"]}<span class="sub">vs {stat.count} {sector} peers</span></span>'
+        f'<span class="bvals"><b>{value:.{dec}f}</b> this company'
+        f'<span class="sep">·</span>sector median <b>{med:.{dec}f}</b></span>'
+        f'</div>'
+        f'<div class="track">'
+        f'<div class="iqr" style="left:{iqr_l:.1f}%;width:{iqr_w:.1f}%"></div>'
+        f'<div class="med" style="left:{x(med):.1f}%"><span class="lbl">Median</span></div>'
+        f'<div class="you {tone}" style="left:{x(value):.1f}%"></div>'
+        f'</div>'
+        f'<div class="scale"><span>{d0:.{dec}f}</span><span>{d1:.{dec}f}</span></div>'
+        f'<div class="read">{_bench_read(cfg["short"], pct, cfg["higher_better"], sector)}</div>'
+        f'</div>')
+
+
+def bench_thin(metric, value, name):
+    """A skipped metric: either the company has no score, or the sector is too thin."""
+    cfg = _BENCH_META[metric]
+    if value is None:
+        msg = f'<b>{cfg["short"]}</b> {cfg["na"].format(name=name)}'
+    else:
+        msg = (f'<b>{cfg["short"]}</b> is too thin to benchmark — fewer than 8 peers in this '
+               f'sector report it, so a percentile would be misleading.')
+    return f'<div class="thin"><span class="tg">{cfg["tag"]}</span><span>{msg}</span></div>'
 
 
 # Kept as a Streamlit title element only — hidden via CSS; the styled hero below is
@@ -619,6 +764,52 @@ st.markdown(
     f'<div class="woverall"><span class="wtag">Overall</span>'
     f'<p class="wtext">{why["overall"]}</p></div></div>',
     unsafe_allow_html=True)
+
+# ============================ SECTOR BENCHMARK ==============================
+# Live-ticker mode only: place this company's Z/F/M against its sector peers, using
+# the committed S&P 500 snapshot. Sample/Manual companies have no real sector to peer
+# against, so the section is skipped there. Scoring math is untouched — this only reads
+# the already-computed scores and ranks them.
+if source == "Live ticker":
+    sector = meta.get("sector")
+    company_vals = {
+        "z": altman.z if altman else None,
+        "f_score": float(piotroski.score) if piotroski else None,
+        "m_score": beneish.m if beneish else None,
+    }
+
+    if not sector:
+        # We couldn't classify the company — say so rather than guess a peer group.
+        st.markdown('<div class="seclabel scroll-reveal"><span class="t">How it stacks up by '
+                    'sector</span><span class="ln"></span></div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="card bench reveal" style="--d:.05s"><p class="intro">We couldn’t '
+            'determine a sector for this ticker, so there’s no peer group to benchmark against.'
+            '</p></div>', unsafe_allow_html=True)
+    else:
+        stats = sector_stats(load_peers(), sector, exclude_ticker=meta.get("ticker"))
+        blocks = []
+        for m in ("z", "f_score", "m_score"):
+            v, stat = company_vals[m], stats[m]
+            if v is not None and not stat.thin:
+                blocks.append(bench_bar(m, v, stat, sector))
+            else:
+                blocks.append(bench_thin(m, v, meta["name"]))
+
+        shown = sum(1 for m in ("z", "f_score", "m_score")
+                    if company_vals[m] is not None and not stats[m].thin)
+        intro = (f'Where <b>{meta["name"]}</b> lands against its <b>{sector}</b> peers in the '
+                 f'S&amp;P 500 snapshot — using the median and the middle 50% (p25–p75), not the '
+                 f'average, so one outlier can’t skew the picture.') if shown else (
+                 f'<b>{meta["name"]}</b> sits in <b>{sector}</b>, but none of the three scores can '
+                 f'be benchmarked here — see why below.')
+
+        st.markdown(
+            f'<div class="seclabel scroll-reveal"><span class="t">How {meta["name"]} stacks up '
+            f'in {sector}</span><span class="ln"></span></div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="card bench reveal" style="--d:.05s">'
+            f'<p class="intro">{intro}</p>{"".join(blocks)}</div>', unsafe_allow_html=True)
 
 # ============================ BREAKDOWNS ====================================
 st.markdown('<div class="seclabel scroll-reveal"><span class="t">Under the hood</span><span class="ln"></span></div>',

@@ -1,0 +1,504 @@
+tr,name,sector,z,zone,f_score,m_score,m_flag,price_to_book,ev_ebitda,market_cap,as_of_date
+MMM,3M Company,Industrials,4.27,Safe,5,-2.27,False,25.671356,14.689,83763707904,2026-06-19
+AOS,A. O. Smith Corporation,Industrials,7.66,Safe,8,-2.5,False,4.2730274,11.009,8024382464,2026-06-19
+ABT,Abbott Laboratories,Healthcare,4.51,Safe,5,-2.5,False,2.9579446,15.78,153993707520,2026-06-19
+ABBV,AbbVie Inc.,Healthcare,2.07,Grey,7,-2.87,False,-57.47014,15.264,382492999680,2026-06-19
+ACN,Accenture plc,Technology,3.64,Safe,5,-2.75,False,2.5211773,8.019,78763393024,2026-06-19
+ADBE,Adobe Inc.,Technology,6.57,Safe,7,-2.85,False,6.760661,8.62,77576101888,2026-06-19
+AMD,"Advanced Micro Devices, Inc.",Technology,38.78,Safe,7,-2.72,False,13.588135,110.19,876235849728,2026-06-19
+AES,The AES Corporation,Utilities,0.45,Distress,4,-2.73,False,2.3588254,12.896,10426364928,2026-06-19
+AFL,Aflac Incorporated,Financial Services,,,,,,1.9675902,11.217,58772488192,2026-06-19
+A,"Agilent Technologies, Inc.",Healthcare,4.91,Safe,5,-2.46,False,5.0348706,18.85,35885801472,2026-06-19
+APD,"Air Products and Chemicals, Inc.",Basic Materials,2.5,Grey,2,-2.89,False,3.9870517,21.262,62397353984,2026-06-19
+ABNB,"Airbnb, Inc.",Consumer Cyclical,4.48,Safe,6,,,11.096308,28.382,84521033728,2026-06-19
+AKAM,"Akamai Technologies, Inc.",Technology,2.78,Grey,5,-2.78,False,3.7036707,21.076,18160097280,2026-06-19
+ALB,Albemarle Corporation,Basic Materials,2.52,Grey,5,-3.62,False,2.4823134,21.545,18910822400,2026-06-19
+ARE,"Alexandria Real Estate Equities, Inc.",Real Estate,0.3,Distress,5,-2.82,False,0.55366886,13.496,8892971008,2026-06-19
+ALGN,"Align Technology, Inc.",Healthcare,5.23,Safe,7,-2.52,False,3.1426156,13.379,13040229376,2026-06-19
+ALLE,Allegion plc,Industrials,4.26,Safe,6,-2.5,False,5.4627624,13.364,11478454272,2026-06-19
+LNT,Alliant Energy Corporation,Utilities,1.18,Distress,6,,,2.5402792,16.593,18854223872,2026-06-19
+ALL,The Allstate Corporation,Financial Services,,,,,,1.9273738,4.144,56933785600,2026-06-19
+GOOGL,Alphabet Inc.,Communication Services,17.5,Safe,6,,,9.313914,27.842,4490912595968,2026-06-19
+GOOG,Alphabet Inc.,Communication Services,17.48,Safe,6,,,9.299489,27.68,4483957391360,2026-06-19
+MO,"Altria Group, Inc.",Consumer Defensive,4.68,Safe,6,-2.36,False,-35.96254,8.762,115422887936,2026-06-19
+AMZN,"Amazon.com, Inc.",Consumer Cyclical,5.6,Safe,6,-2.59,False,5.947242,17.571,2628929978368,2026-06-19
+AMCR,Amcor plc,Consumer Cyclical,1.02,Distress,5,-1.64,True,1.6294475,10.724,18993162240,2026-06-19
+AEE,Ameren Corporation,Utilities,0.98,Distress,6,,,2.2181172,13.586,30074597376,2026-06-19
+AEP,"American Electric Power Company, Inc.",Utilities,0.98,Distress,5,,,2.183743,13.462,69476769792,2026-06-19
+AXP,American Express Company,Financial Services,,,,,,6.780885,,230626344960,2026-06-19
+AIG,"American International Group, Inc.",Financial Services,,,,,,0.9762595,4.746,39245860864,2026-06-19
+AMT,American Tower Corporation,Real Estate,1.14,Distress,7,-2.49,False,23.290117,19.471,82020474880,2026-06-19
+AWK,"American Water Works Company, Inc.",Utilities,0.95,Distress,7,,,2.2128842,14.321,24423735296,2026-06-19
+AMP,"Ameriprise Financial, Inc.",Financial Services,,,,,,6.778179,,42020593664,2026-06-19
+AME,"AMETEK, Inc.",Industrials,7.93,Safe,6,-2.44,False,4.9836273,22.777,54417379328,2026-06-19
+AMGN,Amgen Inc.,Healthcare,1.83,Grey,7,-2.26,False,19.82617,13.773,182205513728,2026-06-19
+APH,Amphenol Corporation,Technology,7.33,Safe,6,-2.4,False,14.420405,25.657,201709256704,2026-06-19
+ADI,"Analog Devices, Inc.",Technology,9.8,Safe,8,-2.77,False,6.271707,33.808,211619823616,2026-06-19
+AON,Aon plc,Financial Services,1.74,Distress,8,-2.38,False,6.90154,14.573,67861934080,2026-06-19
+APA,APA Corporation,Energy,1.64,Distress,7,-3.68,False,1.8082775,3.319,11675121664,2026-06-19
+APO,"Apollo Global Management, Inc.",Financial Services,0.07,Distress,4,,,4.272575,,79271157760,2026-06-19
+AAPL,Apple Inc.,Technology,11.46,Safe,8,-2.29,False,41.04821,27.574,4376979046400,2026-06-19
+AMAT,"Applied Materials, Inc.",Technology,22.71,Safe,6,-2.57,False,20.492462,48.537,489960275968,2026-06-19
+APP,AppLovin Corporation,Communication Services,21.97,Safe,9,-2.45,False,66.83409,35.748,157794156544,2026-06-19
+APTV,Aptiv PLC,Consumer Cyclical,2.2,Grey,8,-2.88,False,1.4645815,6.562,13475995648,2026-06-19
+ACGL,Arch Capital Group Ltd.,Financial Services,,,,,,1.3720769,5.453,31857344512,2026-06-19
+ADM,Archer-Daniels-Midland Company,Consumer Defensive,3.14,Safe,4,-3.03,False,1.5873686,18.879,36194934784,2026-06-19
+ARES,Ares Management Corporation,Financial Services,1.7,Distress,5,-2.64,False,11.366552,35.49,42662363136,2026-06-19
+ANET,"Arista Networks, Inc.",Technology,20.59,Safe,4,-2.24,False,15.840724,47.013,213643264000,2026-06-19
+AJG,Arthur J. Gallagher & Co.,Financial Services,1.16,Distress,6,,,2.313012,17.033,55001001984,2026-06-19
+AIZ,"Assurant, Inc.",Financial Services,,,,,,2.1991282,8.052,12875448320,2026-06-19
+T,AT&T Inc.,Communication Services,0.92,Distress,6,-2.78,False,1.3979042,7.356,152932941824,2026-06-19
+ATO,Atmos Energy Corporation,Utilities,1.75,Distress,6,,,1.9045646,14.887,28394731520,2026-06-19
+ADSK,"Autodesk, Inc.",Technology,3.41,Safe,7,-2.68,False,12.823873,19.771,40924172288,2026-06-19
+ADP,"Automatic Data Processing, Inc.",Technology,2.56,Grey,8,-2.44,False,13.778942,14.182,87305961472,2026-06-19
+AZO,"AutoZone, Inc.",Consumer Cyclical,2.56,Grey,6,-2.37,False,-18.014591,14.981,50162470912,2026-06-19
+AVB,"AvalonBay Communities, Inc.",Real Estate,1.75,Distress,4,,,2.1437206,19.114,25156755456,2026-06-19
+AVY,Avery Dennison Corporation,Consumer Cyclical,3.45,Safe,5,-2.54,False,5.287923,11.001,12137493504,2026-06-19
+AXON,"Axon Enterprise, Inc.",Industrials,6.47,Safe,5,-2.17,False,9.652782,351.899,34126919680,2026-06-19
+BKR,Baker Hughes Company,Energy,2.55,Grey,7,-2.68,False,2.9993837,12.744,57946730496,2026-06-19
+BALL,Ball Corporation,Consumer Cyclical,2.49,Grey,6,-2.45,False,2.7434766,11.182,15367748608,2026-06-19
+BAC,Bank of America Corporation,Financial Services,,,,,,1.4535484,,398828404736,2026-06-19
+BAX,Baxter International Inc.,Healthcare,2.16,Grey,4,-2.67,False,1.6998546,9.539,10272568320,2026-06-19
+BDX,"Becton, Dickinson and Company",Healthcare,1.78,Distress,7,-2.64,False,1.6439075,9.17,39672307712,2026-06-19
+BRK-B,Berkshire Hathaway Inc.,Financial Services,,,,,,0.00096815516,-2.25,1055693602816,2026-06-19
+BBY,"Best Buy Co., Inc.",Consumer Cyclical,4.29,Safe,7,-2.82,False,5.1072993,6.937,15750627328,2026-06-19
+TECH,Bio-Techne Corporation,Healthcare,9.92,Safe,5,-3.04,False,4.4911246,24.174,9071593472,2026-06-19
+BIIB,Biogen Inc.,Healthcare,3.3,Safe,4,-2.63,False,1.5556277,8.803,29022504960,2026-06-19
+BLK,"BlackRock, Inc.",Financial Services,1.74,Distress,3,-2.24,False,2.8779838,16.612,171005591552,2026-06-19
+BX,Blackstone Inc.,Financial Services,,,,,,11.61584,,151303815168,2026-06-19
+XYZ,"Block, Inc.",Technology,2.91,Grey,6,-2.62,False,2.027712,28.701,44507635712,2026-06-19
+BNY,The Bank of New York Mellon Cor,Financial Services,,,,,,2.4988692,,98584633344,2026-06-19
+BA,The Boeing Company,Industrials,1.57,Distress,6,-3.02,False,29.340008,-64.06,175570698240,2026-06-19
+BKNG,Booking Holdings Inc.,Consumer Cyclical,6.34,Safe,,,,-15.358068,13.424,133108621312,2026-06-19
+BSX,Boston Scientific Corporation,Healthcare,3.12,Safe,7,-2.52,False,2.6025743,14.465,67317026816,2026-06-19
+BMY,Bristol-Myers Squibb Company,Healthcare,2.21,Grey,8,-2.68,False,5.4945054,7.914,110271848448,2026-06-19
+AVGO,Broadcom Inc.,Technology,14.12,Safe,8,-2.1,False,22.319588,43.663,1957030658048,2026-06-19
+BR,"Broadridge Financial Solutions, Inc.",Technology,3.52,Safe,7,-2.66,False,5.6479087,11.205,15914582016,2026-06-19
+BRO,"Brown & Brown, Inc.",Financial Services,1.41,Distress,4,,,1.5726869,11.012,20031817728,2026-06-19
+BF-B,Brown-Forman Corporation,Consumer Defensive,4.11,Safe,7,-2.65,False,3.039708,12.248,12224143360,2026-06-19
+BLDR,"Builders FirstSource, Inc.",Industrials,2.5,Grey,5,-2.84,False,2.1639545,11.311,8668250112,2026-06-19
+BG,Bunge Global SA,Consumer Defensive,2.86,Grey,3,-1.51,True,1.361306,17.543,21842558976,2026-06-19
+BXP,"BXP, Inc.",Real Estate,0.63,Distress,5,,,1.9926697,18.094,11536748544,2026-06-19
+CHRW,"C.H. Robinson Worldwide, Inc.",Industrials,9.71,Safe,7,-2.82,False,12.829508,26.83,21811226624,2026-06-19
+CDNS,"Cadence Design Systems, Inc.",Technology,16.09,Safe,7,-2.54,False,16.284418,53.873,106848362496,2026-06-19
+CPT,Camden Property Trust,Real Estate,1.57,Distress,7,,,2.8127177,19.037,10799883264,2026-06-19
+CPB,The Campbell's Company,Consumer Defensive,1.67,Distress,7,-2.71,False,1.5646963,7.876,6307061760,2026-06-19
+COF,Capital One Financial Corporation,Financial Services,,,,,,1.1615226,,125410664448,2026-06-19
+CAH,"Cardinal Health, Inc.",Healthcare,4.86,Safe,6,-2.32,False,-18.402622,14.64,51939831808,2026-06-19
+CCL,Carnival Corporation Ltd.,Consumer Cyclical,1.35,Distress,8,-2.68,False,3.2809012,9.373,42759258112,2026-06-19
+CARR,Carrier Global Corporation,Industrials,2.84,Grey,4,-2.57,False,4.438195,22.492,59643977728,2026-06-19
+CVNA,Carvana Co.,Consumer Cyclical,6.77,Safe,5,-0.37,True,12.792619,22.972,73005383680,2026-06-19
+CASY,"Casey's General Stores, Inc.",Consumer Cyclical,,,,,,7.8737764,23.142,31219623936,2026-06-19
+CAT,Caterpillar Inc.,Industrials,5.74,Safe,6,-2.43,False,24.334625,32.648,454060769280,2026-06-19
+CBOE,"Cboe Global Markets, Inc.",Financial Services,5.63,Safe,8,-3.01,False,4.8523455,15.249,26069258240,2026-06-19
+CBRE,"CBRE Group, Inc.",Real Estate,3.03,Safe,5,,,4.521551,22.442,38520020992,2026-06-19
+CDW,CDW Corporation,Technology,2.46,Grey,5,-2.34,False,6.4300737,11.193,16399709184,2026-06-19
+COR,"Cencora, Inc.",Healthcare,4.77,Safe,6,-2.54,False,15.566053,12.803,52887527424,2026-06-19
+CNC,Centene Corporation,Healthcare,2.81,Grey,4,-3.07,False,1.4061527,7.933,30131492864,2026-06-19
+CNP,"CenterPoint Energy, Inc.",Utilities,0.88,Distress,5,,,2.4465773,14.15,28011536384,2026-06-19
+CF,"CF Industries Holdings, Inc.",Basic Materials,3.13,Safe,8,-2.82,False,2.9597998,6.027,15813061632,2026-06-19
+CRL,"Charles River Laboratories International, Inc.",Healthcare,2.26,Grey,5,-3.13,False,3.030303,13.288,8911029248,2026-06-19
+SCHW,The Charles Schwab Corporation,Financial Services,,,,,,3.7528136,,159478726656,2026-06-19
+CHTR,"Charter Communications, Inc.",Communication Services,0.6,Distress,7,-2.66,False,0.9474735,5.389,19777511424,2026-06-19
+CVX,Chevron Corporation,Energy,3.26,Safe,5,-3.01,False,1.8688784,10.603,345801129984,2026-06-19
+CMG,"Chipotle Mexican Grill, Inc.",Consumer Cyclical,6.25,Safe,6,-2.94,False,17.365046,20.054,41676029952,2026-06-19
+CB,Chubb Limited,Financial Services,,,,,,1.7027056,10.444,125433954304,2026-06-19
+CHD,"Church & Dwight Co., Inc.",Consumer Defensive,4.93,Safe,7,-2.71,False,5.4116917,18.151,22658916352,2026-06-19
+CIEN,Ciena Corporation,Technology,12.26,Safe,7,-2.92,False,20.964457,78.0,60615794688,2026-06-19
+CI,The Cigna Group,Healthcare,2.67,Grey,7,-2.33,False,1.7506456,7.505,73875963904,2026-06-19
+CINF,Cincinnati Financial Corporation,Financial Services,,,,,,1.6744882,7.182,26327681024,2026-06-19
+CTAS,Cintas Corporation,Industrials,11.73,Safe,8,-2.54,False,14.271992,25.295,68363390976,2026-06-19
+CSCO,"Cisco Systems, Inc.",Technology,4.55,Safe,8,-2.63,False,9.639545,28.673,471159111680,2026-06-19
+C,Citigroup Inc.,Financial Services,,,,,,1.2747605,,243999834112,2026-06-19
+CFG,"Citizens Financial Group, Inc.",Financial Services,,,,,,1.1877191,,28366921728,2026-06-19
+CLX,The Clorox Company,Consumer Defensive,3.38,Safe,7,-2.47,False,-172.9242,11.965,11584266240,2026-06-19
+CME,CME Group Inc.,Financial Services,0.52,Distress,6,-2.56,False,3.348783,20.035,89022701568,2026-06-19
+CMS,CMS Energy Corporation,Utilities,0.92,Distress,5,,,2.452622,13.971,22668521472,2026-06-19
+KO,The Coca-Cola Company,Consumer Defensive,5.1,Safe,7,-2.35,False,10.15737,22.634,341574090752,2026-06-19
+CTSH,Cognizant Technology Solutions Corporation,Technology,5.03,Safe,7,-2.5,False,1.3746895,6.108,20670099456,2026-06-19
+COHR,Coherent Corp.,Technology,7.8,Safe,7,-2.56,False,7.134851,58.028,76215214080,2026-06-19
+COIN,"Coinbase Global, Inc.",Financial Services,2.92,Grey,4,-2.12,False,3.190105,42.02,43012603904,2026-06-19
+CL,Colgate-Palmolive Company,Consumer Defensive,6.81,Safe,5,-3.02,False,494.3647,16.143,71600939008,2026-06-19
+CMCSA,Comcast Corporation,Communication Services,1.42,Distress,8,-2.72,False,0.90886986,4.804,80125091840,2026-06-19
+FIX,"Comfort Systems USA, Inc.",Industrials,13.18,Safe,7,-2.35,False,107.1866,40.253,69221294080,2026-06-19
+CAG,"Conagra Brands, Inc.",Consumer Defensive,1.5,Distress,6,-2.67,False,0.7735584,7.959,6315370496,2026-06-19
+COP,ConocoPhillips,Energy,3.06,Safe,7,-2.89,False,2.0337126,6.537,131258990592,2026-06-19
+ED,"Consolidated Edison, Inc.",Utilities,1.14,Distress,6,,,1.5291716,11.13,39196819456,2026-06-19
+STZ,"Constellation Brands, Inc.",Consumer Defensive,2.78,Grey,6,-2.75,False,3.017892,10.702,24215013376,2026-06-19
+CEG,Constellation Energy Corporation,Utilities,2.29,Grey,6,,,2.965921,14.922,97867374592,2026-06-19
+COO,"The Cooper Companies, Inc.",Healthcare,3.32,Safe,6,-2.5,False,1.5591882,17.738,12854469632,2026-06-19
+CPRT,"Copart, Inc.",Industrials,21.75,Safe,5,-2.55,False,3.189828,12.426,27987279872,2026-06-19
+GLW,Corning Incorporated,Technology,7.03,Safe,7,-2.37,False,14.967365,41.311,167755530240,2026-06-19
+CPAY,"Corpay, Inc.",Technology,1.55,Distress,6,-2.57,False,6.5053883,12.482,22568163328,2026-06-19
+CTVA,"Corteva, Inc.",Basic Materials,2.4,Grey,7,-2.75,False,2.1615005,12.81,52562558976,2026-06-19
+CSGP,"CoStar Group, Inc.",Real Estate,4.16,Safe,5,-2.1,False,1.5496218,47.916,12299674624,2026-06-19
+COST,Costco Wholesale Corporation,Consumer Defensive,9.75,Safe,6,-2.66,False,25.523098,31.606,421947932672,2026-06-19
+CRH,CRH plc,Basic Materials,3.07,Safe,6,-2.52,False,3.2221065,12.404,74330587136,2026-06-19
+CRWD,"CrowdStrike Holdings, Inc.",Technology,16.41,Safe,4,-2.95,False,37.619335,2853.795,174341259264,2026-06-19
+CCI,Crown Castle Inc.,Real Estate,-0.02,Distress,5,-2.71,False,-18.630793,25.014,35810885632,2026-06-19
+CSX,CSX Corporation,Industrials,2.66,Grey,5,-2.63,False,6.244697,15.92,84786880512,2026-06-19
+CMI,Cummins Inc.,Industrials,5.48,Safe,5,-2.5,False,8.008982,20.517,98918842368,2026-06-19
+CVS,CVS Health Corporation,Healthcare,2.35,Grey,6,,,1.6159092,12.668,125449175040,2026-06-19
+DHR,Danaher Corporation,Healthcare,3.78,Safe,5,-2.57,False,2.368013,17.939,125395722240,2026-06-19
+DRI,"Darden Restaurants, Inc.",Consumer Cyclical,2.62,Grey,6,-2.75,False,11.635957,15.861,24447496192,2026-06-19
+DDOG,"Datadog, Inc.",Technology,17.66,Safe,6,-2.69,False,19.896502,2274.673,79379120128,2026-06-19
+DVA,DaVita Inc.,Healthcare,1.67,Distress,6,-2.7,False,-18.213755,9.945,13344703488,2026-06-19
+DECK,Deckers Outdoor Corporation,Consumer Cyclical,11.84,Safe,6,-2.69,False,6.110209,10.285,15153301504,2026-06-19
+DE,Deere & Company,Industrials,3.18,Safe,5,-2.52,False,5.8037763,22.944,159057936384,2026-06-19
+DELL,Dell Technologies Inc.,Technology,2.92,Grey,7,-2.15,False,-189.32037,20.066,265400205312,2026-06-19
+DAL,"Delta Air Lines, Inc.",Industrials,1.59,Distress,6,-2.7,False,2.6995478,9.09,55305785344,2026-06-19
+DVN,Devon Energy Corporation,Energy,3.22,Safe,6,-3.04,False,1.6953791,4.997,48581337088,2026-06-19
+DXCM,"DexCom, Inc.",Healthcare,6.88,Safe,7,-2.71,False,9.458365,21.048,27964215296,2026-06-19
+FANG,"Diamondback Energy, Inc.",Energy,1.46,Distress,5,-2.98,False,1.4153162,7.174,51620990976,2026-06-19
+DLR,"Digital Realty Trust, Inc.",Real Estate,1.9,Grey,6,-2.46,False,2.9001033,30.005,67301076992,2026-06-19
+DG,Dollar General Corporation,Consumer Defensive,2.52,Grey,7,-3.55,False,2.8298826,11.671,25025554432,2026-06-19
+DLTR,"Dollar Tree, Inc.",Consumer Defensive,3.6,Safe,8,,,6.1569424,11.586,21456293888,2026-06-19
+D,"Dominion Energy, Inc.",Utilities,0.74,Distress,7,,,2.1356769,14.279,60167454720,2026-06-19
+DPZ,"Domino's Pizza, Inc.",Consumer Cyclical,2.91,Grey,8,-3.03,False,-2.6796389,15.233,10393336832,2026-06-19
+DASH,"DoorDash, Inc.",Consumer Cyclical,5.38,Safe,5,-2.35,False,7.4153557,53.223,75579768832,2026-06-19
+DOV,Dover Corporation,Industrials,5.63,Safe,6,-2.56,False,4.0195975,16.95,30106251264,2026-06-19
+DOW,Dow Inc.,Basic Materials,1.51,Distress,3,-2.41,False,1.49974,15.358,22869125120,2026-06-19
+DHI,"D.R. Horton, Inc.",Consumer Cyclical,6.19,Safe,4,-2.34,False,1.9032744,11.627,44751699968,2026-06-19
+DTE,DTE Energy Company,Utilities,1.01,Distress,5,,,2.4910107,16.268,30696658944,2026-06-19
+DUK,Duke Energy Corporation,Utilities,0.71,Distress,7,,,1.8017048,11.551,96560791552,2026-06-19
+DD,"DuPont de Nemours, Inc.",Basic Materials,0.55,Distress,6,-2.32,False,1.3927892,14.422,19325327360,2026-06-19
+ETN,Eaton Corporation plc,Industrials,6.04,Safe,7,-2.37,False,8.304521,28.289,163773284352,2026-06-19
+EBAY,eBay Inc.,Consumer Cyclical,6.49,Safe,5,-2.13,False,10.942175,17.405,48058560512,2026-06-19
+SATS,EchoStar Corporation,Communication Services,-0.77,Distress,3,-4.1,False,5.60824,39.578,31638939648,2026-06-19
+ECL,Ecolab Inc.,Basic Materials,4.83,Safe,6,-2.51,False,7.5710344,21.246,75740463104,2026-06-19
+EIX,Edison International,Utilities,0.81,Distress,6,-2.7,False,1.6048666,8.387,27662837760,2026-06-19
+EW,Edwards Lifesciences Corporation,Healthcare,11.63,Safe,6,-2.62,False,4.8807197,25.234,50301886464,2026-06-19
+EA,Electronic Arts Inc.,Communication Services,6.38,Safe,6,-3.16,False,7.4928646,33.523,50689413120,2026-06-19
+ELV,"Elevance Health, Inc.",Healthcare,,,,,,1.923553,9.518,84367589376,2026-06-19
+EME,"EMCOR Group, Inc.",Industrials,7.47,Safe,6,-2.25,False,9.6153145,19.828,37255503872,2026-06-19
+EMR,Emerson Electric Co.,Industrials,4.35,Safe,7,-2.67,False,4.156253,16.278,84384661504,2026-06-19
+ETR,Entergy Corporation,Utilities,1.12,Distress,6,,,2.9325135,14.982,50875809792,2026-06-19
+EOG,"EOG Resources, Inc.",Energy,3.62,Safe,4,-2.94,False,2.249256,5.942,69231058944,2026-06-19
+EQT,EQT Corporation,Energy,1.91,Grey,8,,,1.2629796,5.409,31724244992,2026-06-19
+EFX,Equifax Inc.,Industrials,3.05,Safe,8,-2.84,False,4.044297,13.048,18569283584,2026-06-19
+EQIX,"Equinix, Inc.",Real Estate,2.71,Grey,5,-2.77,False,7.5335913,30.35,107716411392,2026-06-19
+EQR,Equity Residential,Real Estate,2.01,Grey,6,,,2.2539124,17.891,24762836992,2026-06-19
+ERIE,Erie Indemnity Company,Financial Services,,,,,,4.9132395,13.985,11563381760,2026-06-19
+ESS,"Essex Property Trust, Inc.",Real Estate,1.78,Distress,5,-2.47,False,3.2383282,19.581,18865786880,2026-06-19
+EL,The Estée Lauder Companies Inc.,Consumer Defensive,2.68,Grey,4,-3.22,False,7.684153,16.111,30683826176,2026-06-19
+EG,"Everest Group, Ltd.",Financial Services,,,,,,0.8735905,,13281416192,2026-06-19
+EVRG,"Evergy, Inc.",Utilities,0.86,Distress,4,,,1.8724041,12.653,19017324544,2026-06-19
+ES,Eversource Energy,Utilities,0.75,Distress,7,,,1.582742,11.528,26171408384,2026-06-19
+EXC,Exelon Corporation,Utilities,0.76,Distress,6,,,1.5989529,11.904,46873165824,2026-06-19
+EXE,Expand Energy Corporation,Energy,2.25,Grey,8,-2.12,False,1.0683798,3.23,20808126464,2026-06-19
+EXPE,"Expedia Group, Inc.",Consumer Cyclical,1.53,Distress,7,-2.78,False,50.187496,11.324,28913317888,2026-06-19
+EXPD,"Expeditors International of Washington, Inc.",Industrials,9.1,Safe,8,-2.55,False,9.323239,18.2,21099227136,2026-06-19
+EXR,Extra Space Storage Inc.,Real Estate,1.54,Distress,7,-2.55,False,2.302148,19.962,32073447424,2026-06-19
+XOM,Exxon Mobil Corporation,Energy,4.44,Safe,5,-2.72,False,2.2202709,11.317,571215183872,2026-06-19
+FFIV,"F5, Inc.",Technology,6.65,Safe,7,-2.6,False,6.1977873,22.983,21749055488,2026-06-19
+FDS,FactSet Research Systems Inc.,Financial Services,4.23,Safe,6,-2.4,False,3.8082533,10.903,8061843968,2026-06-19
+FICO,Fair Isaac Corporation,Technology,10.26,Safe,7,-2.68,False,-12.153537,26.609,25428363264,2026-06-19
+FAST,Fastenal Company,Industrials,32.93,Safe,7,-2.43,False,13.205755,28.067,52683329536,2026-06-19
+FRT,Federal Realty Investment Trust,Real Estate,1.29,Distress,4,-2.5,False,3.3002548,18.999,10464106496,2026-06-19
+FDX,FedEx Corporation,Industrials,2.72,Grey,5,,,2.6158152,9.854,77833527296,2026-06-19
+FDXF,"FedEx Freight Holding Company, Inc.",Industrials,9.0,Safe,6,,,0.0017013164,3.393,24249368576,2026-06-19
+FIS,"Fidelity National Information Services, Inc.",Technology,0.02,Distress,6,-2.79,False,1.2364495,12.337,19749951488,2026-06-19
+FITB,Fifth Third Bancorp,Financial Services,,,,,,1.4964675,,47798874112,2026-06-19
+FSLR,"First Solar, Inc.",Technology,6.24,Safe,7,-2.59,False,2.803098,11.69,27690731520,2026-06-19
+FE,FirstEnergy Corp.,Utilities,0.76,Distress,5,,,2.1233315,11.035,26868127744,2026-06-19
+FISV,"Fiserv, Inc.",Financials,1.27,Distress,5,-2.57,False,0.9735953,,25521534976,2026-06-19
+F,Ford Motor Company,Consumer Cyclical,0.81,Distress,2,1.35,True,1.4959038,25.756,56024780800,2026-06-19
+FTNT,"Fortinet, Inc.",Technology,8.37,Safe,6,-2.64,False,107.36646,44.459,106036199424,2026-06-19
+FTV,Fortive Corporation,Technology,3.26,Safe,6,-2.69,False,3.0660636,18.452,18605668352,2026-06-19
+FOXA,Fox Corporation,Communication Services,2.97,Grey,,,,2.0036058,7.37,21931409408,2026-06-19
+FOX,Fox Corporation,Communication Services,2.84,Grey,,,,1.8010588,6.85,19714334720,2026-06-19
+BEN,"Franklin Resources, Inc.",Financial Services,1.55,Distress,7,-2.53,False,1.4165094,11.524,17174007808,2026-06-19
+FCX,Freeport-McMoRan Inc.,Basic Materials,3.18,Safe,6,-2.04,False,5.0600457,12.217,98731606016,2026-06-19
+GRMN,Garmin Ltd.,Technology,16.01,Safe,6,-2.24,False,4.872974,19.769,45166923776,2026-06-19
+IT,"Gartner, Inc.",Technology,3.07,Safe,6,-2.89,False,136.49893,8.386,8535695872,2026-06-19
+GE,GE Aerospace,Industrials,3.6,Safe,6,-2.27,False,20.664473,34.244,373672869888,2026-06-19
+GEHC,GE HealthCare Technologies Inc.,Healthcare,1.8,Distress,4,-2.35,False,2.6262152,10.593,28016785408,2026-06-19
+GEV,GE Vernova Inc.,Industrials,4.33,Safe,7,-2.25,False,21.419638,75.872,298206625792,2026-06-19
+GEN,Gen Digital Inc.,Technology,1.33,Distress,7,-2.37,False,5.53825,9.485,14566850560,2026-06-19
+GNRC,Generac Holdings Inc.,Industrials,5.3,Safe,6,-2.81,False,6.1320653,31.786,16433191936,2026-06-19
+GD,General Dynamics Corporation,Industrials,4.27,Safe,7,-2.65,False,3.6240048,16.109,94653267968,2026-06-19
+GIS,"General Mills, Inc.",Consumer Defensive,2.21,Grey,5,-2.54,False,3.227738,6.368,17835624448,2026-06-19
+GM,General Motors Company,Consumer Cyclical,1.22,Distress,5,-2.36,False,1.1414052,9.885,71493033984,2026-06-19
+GPC,Genuine Parts Company,Consumer Cyclical,2.11,Grey,6,-2.63,False,3.342661,10.319,15122573312,2026-06-19
+GILD,"Gilead Sciences, Inc.",Healthcare,4.09,Safe,8,-2.45,False,6.5367346,11.551,153656688640,2026-06-19
+GPN,Global Payments Inc.,Industrials,0.91,Distress,5,-2.66,False,0.76851475,9.526,18294589440,2026-06-19
+GL,Globe Life Inc.,Financial Services,,,,,,2.18584,9.741,13258618880,2026-06-19
+GDDY,GoDaddy Inc.,Technology,1.22,Distress,5,-2.97,False,43.063164,9.889,10200854528,2026-06-19
+GS,"The Goldman Sachs Group, Inc.",Financial Services,,,,,,3.0778818,,323493363712,2026-06-19
+HAL,Halliburton Company,Energy,3.49,Safe,4,-2.69,False,2.7056546,9.023,29180444672,2026-06-19
+HIG,"The Hartford Insurance Group, Inc.",Financial Services,,,,,,1.9000844,6.562,35157278720,2026-06-19
+HAS,"Hasbro, Inc.",Consumer Cyclical,2.87,Grey,4,-3.45,False,18.506224,11.467,11989920768,2026-06-19
+HCA,"HCA Healthcare, Inc.",Healthcare,2.54,Grey,7,,,-13.245658,9.004,83227639808,2026-06-19
+DOC,"Healthpeak Properties, Inc.",Real Estate,0.88,Distress,5,-2.75,False,1.7375854,15.948,13485048832,2026-06-19
+HSIC,"Henry Schein, Inc.",Healthcare,2.77,Grey,4,-2.53,False,2.799986,13.758,9104227328,2026-06-19
+HSY,The Hershey Company,Consumer Defensive,4.11,Safe,4,-2.79,False,7.39695,18.501,35016851456,2026-06-19
+HPE,Hewlett Packard Enterprise Company,Technology,1.21,Distress,4,-2.06,False,2.4805105,14.232,62780489728,2026-06-19
+HLT,Hilton Worldwide Holdings Inc.,Consumer Cyclical,3.17,Safe,6,-2.62,False,-13.488516,30.722,79412854784,2026-06-19
+HD,"The Home Depot, Inc.",Consumer Cyclical,5.68,Safe,4,-2.4,False,24.021269,15.964,333316161536,2026-06-19
+HON,Honeywell International Inc.,Industrials,3.38,Safe,5,-2.59,False,10.67795,20.157,145112891392,2026-06-19
+HRL,Hormel Foods Corporation,Consumer Defensive,3.51,Safe,5,-2.61,False,1.672551,10.583,13295608832,2026-06-19
+HST,"Host Hotels & Resorts, Inc.",Real Estate,2.28,Grey,8,-2.42,False,2.509029,12.692,17351094272,2026-06-19
+HWM,Howmet Aerospace Inc.,Industrials,13.5,Safe,8,-2.54,False,20.16266,44.284,111093850112,2026-06-19
+HPQ,HP Inc.,Technology,1.62,Distress,5,-2.49,False,-149.68152,6.234,21491283968,2026-06-19
+HUBB,Hubbell Incorporated,Industrials,5.85,Safe,5,-2.47,False,7.342924,19.631,27672709120,2026-06-19
+HUM,Humana Inc.,Healthcare,,,,,,2.330473,10.956,43300179968,2026-06-19
+HBAN,Huntington Bancshares Incorporated,Financial Services,,,,,,1.1525054,,34177423360,2026-06-19
+HII,"Huntington Ingalls Industries, Inc.",Industrials,2.73,Grey,8,-2.17,False,2.1837225,12.767,11247091712,2026-06-19
+IBM,International Business Machines Corporation,Technology,3.31,Safe,6,-2.4,False,7.100305,18.821,234125443072,2026-06-19
+IEX,IDEX Corporation,Industrials,5.37,Safe,8,-2.54,False,4.1267014,18.786,16648206336,2026-06-19
+IDXX,"IDEXX Laboratories, Inc.",Healthcare,20.63,Safe,8,-2.51,False,28.62257,29.824,44339347456,2026-06-19
+ITW,Illinois Tool Works Inc.,Industrials,8.09,Safe,5,-2.43,False,23.531141,17.933,75978694656,2026-06-19
+INCY,Incyte Corporation,Healthcare,8.75,Safe,7,-2.43,False,3.4927635,10.299,19622604800,2026-06-19
+IR,Ingersoll Rand Inc.,Industrials,3.26,Safe,6,-2.56,False,2.9960778,17.04,30489053184,2026-06-19
+PODD,Insulet Corporation,Healthcare,5.47,Safe,6,-2.57,False,7.7507176,17.879,10096018432,2026-06-19
+INTC,Intel Corporation,Technology,5.55,Safe,6,-2.59,False,6.0418453,43.328,673433780224,2026-06-19
+IBKR,"Interactive Brokers Group, Inc.",Financial Services,0.88,Distress,4,,,7.6573343,,162837331968,2026-06-19
+ICE,"Intercontinental Exchange, Inc.",Financial Services,0.86,Distress,8,-2.44,False,2.5706112,15.112,75710816256,2026-06-19
+IFF,International Flavors & Fragrances Inc.,Basic Materials,1.33,Distress,5,-2.54,False,1.3866147,13.738,19586883584,2026-06-19
+IP,International Paper Company,Consumer Cyclical,1.13,Distress,4,-2.7,False,1.3163633,6.904,19496814592,2026-06-19
+INTU,Intuit Inc.,Technology,4.37,Safe,9,-2.71,False,3.549824,12.01,73034375168,2026-06-19
+ISRG,"Intuitive Surgical, Inc.",Healthcare,36.25,Safe,7,-2.44,False,8.249945,36.884,144066363392,2026-06-19
+IVZ,Invesco Ltd.,Financial Services,1.47,Distress,6,-2.93,False,1.2801383,13.273,12474366976,2026-06-19
+INVH,Invitation Homes Inc.,Real Estate,1.32,Distress,7,-2.65,False,1.8562561,17.411,16876732416,2026-06-19
+IQV,IQVIA Holdings Inc.,Healthcare,1.78,Distress,5,-2.47,False,4.500993,14.71,28000813056,2026-06-19
+IRM,Iron Mountain Incorporated,Real Estate,1.14,Distress,4,-2.66,False,-31.300196,23.656,38032580608,2026-06-19
+JBHT,"J.B. Hunt Transport Services, Inc.",Industrials,6.72,Safe,8,-3.19,False,7.1154604,17.38,25575829504,2026-06-19
+JBL,Jabil Inc.,Technology,3.66,Safe,5,-2.49,False,29.279585,17.766,39234318336,2026-06-19
+JKHY,"Jack Henry & Associates, Inc.",Technology,8.93,Safe,9,-2.73,False,4.210614,13.002,8968740864,2026-06-19
+J,Jacobs Solutions Inc.,Industrials,2.87,Grey,7,-2.55,False,4.3420672,17.479,14284243968,2026-06-19
+JNJ,Johnson & Johnson,Healthcare,3.84,Safe,3,-2.26,False,6.77012,17.453,549784256512,2026-06-19
+JCI,Johnson Controls International plc,Industrials,2.91,Grey,6,-2.28,False,6.536379,22.551,88356945920,2026-06-19
+JPM,JPMorgan Chase & Co.,Financial Services,,,,,,2.5332804,,871430684672,2026-06-19
+KVUE,Kenvue Inc.,Consumer Defensive,2.11,Grey,6,-2.47,False,3.279638,12.424,34790559744,2026-06-19
+KDP,Keurig Dr Pepper Inc.,Consumer Defensive,1.42,Distress,6,-2.36,False,1.6566135,17.981,41850810368,2026-06-19
+KEY,KeyCorp,Financial Services,,,,,,1.4045887,,24382939136,2026-06-19
+KEYS,"Keysight Technologies, Inc.",Technology,8.84,Safe,5,-2.57,False,9.822814,42.108,62149517312,2026-06-19
+KMB,Kimberly-Clark Corporation,Consumer Defensive,3.39,Safe,4,-2.54,False,18.953983,12.324,34043801600,2026-06-19
+KIM,Kimco Realty Corporation,Real Estate,1.33,Distress,8,-2.5,False,1.582603,19.23,16441621504,2026-06-19
+KMI,"Kinder Morgan, Inc.",Energy,1.27,Distress,6,-2.51,False,2.2437673,13.895,70282248192,2026-06-19
+KKR,KKR & Co. Inc.,Financial Services,0.88,Distress,5,,,3.086738,,90456154112,2026-06-19
+KLAC,KLA Corporation,Technology,20.34,Safe,9,-2.25,False,58.184265,53.196,339056787456,2026-06-19
+KHC,The Kraft Heinz Company,Consumer Defensive,0.47,Distress,5,-3.08,False,0.64558107,7.877,27059445760,2026-06-19
+KR,The Kroger Co.,Consumer Defensive,4.27,Safe,7,-3.12,False,6.118677,8.961,34903502848,2026-06-19
+LHX,"L3Harris Technologies, Inc.",Industrials,2.44,Grey,8,-2.39,False,2.8684292,35.278,54923476992,2026-06-19
+LH,Labcorp Holdings Inc.,Healthcare,3.02,Safe,8,-2.55,False,2.4120765,12.446,20977240064,2026-06-19
+LRCX,Lam Research Corporation,Technology,29.58,Safe,8,-2.36,False,45.964085,58.726,486522159104,2026-06-19
+LVS,Las Vegas Sands Corp.,Consumer Cyclical,2.32,Grey,8,-2.17,False,26.961815,9.377,32283691008,2026-06-19
+LDOS,"Leidos Holdings, Inc.",Technology,3.4,Safe,7,-2.61,False,2.6878107,8.663,13474139136,2026-06-19
+LEN,Lennar Corporation,Consumer Cyclical,3.86,Safe,4,-2.08,False,1.0100976,11.627,22100346880,2026-06-19
+LII,Lennox International Inc.,Industrials,7.81,Safe,5,-2.21,False,15.268123,17.586,18528546816,2026-06-19
+LLY,Eli Lilly and Company,Healthcare,8.81,Safe,7,-1.85,False,31.462324,28.692,979640254464,2026-06-19
+LIN,Linde plc,Basic Materials,4.01,Safe,5,-2.64,False,6.143245,19.396,236791185408,2026-06-19
+LYV,"Live Nation Entertainment, Inc.",Communication Services,2.36,Grey,5,-2.57,False,-283.50995,29.184,39849742336,2026-06-19
+LMT,Lockheed Martin Corporation,Industrials,3.34,Safe,6,,,15.692085,17.808,117806481408,2026-06-19
+L,Loews Corporation,Financial Services,,,,,,1.180224,8.068,22074886144,2026-06-19
+LOW,"Lowe's Companies, Inc.",Consumer Cyclical,3.14,Safe,5,8.81,True,-13.447107,13.287,124589113344,2026-06-19
+LULU,lululemon athletica inc.,Consumer Cyclical,5.44,Safe,5,-1.9,False,2.6242018,5.353,12691920896,2026-06-19
+LITE,Lumentum Holdings Inc.,Technology,13.23,Safe,7,-2.5,False,71.68761,123.633,66130001920,2026-06-19
+LYB,LyondellBasell Industries N.V.,Basic Materials,1.8,Distress,3,-2.88,False,1.9311386,14.419,19389681664,2026-06-19
+MTB,M&T Bank Corporation,Financial Services,,,,,,1.295051,,32967710720,2026-06-19
+MPC,Marathon Petroleum Corporation,Energy,3.36,Safe,7,-2.84,False,4.248387,10.915,70914326528,2026-06-19
+MAR,"Marriott International, Inc.",Consumer Cyclical,4.18,Safe,7,-2.55,False,-25.629086,25.806,104473436160,2026-06-19
+MRSH,"Marsh & McLennan Companies, Inc.",Financial Services,2.61,Grey,6,,,5.375145,13.29,78248247296,2026-06-19
+MLM,"Martin Marietta Materials, Inc.",Basic Materials,3.74,Safe,8,,,3.2381742,19.744,36575158272,2026-06-19
+MAS,Masco Corporation,Industrials,4.1,Safe,6,-2.66,False,-61.98333,12.619,15005006848,2026-06-19
+MA,Mastercard Incorporated,Financial Services,9.59,Safe,9,-2.55,False,64.65021,21.224,432770547712,2026-06-19
+MKC,"McCormick & Company, Incorporated",Consumer Defensive,2.13,Grey,5,-2.45,False,1.7955035,13.263,12538846208,2026-06-19
+MCD,McDonald's Corporation,Consumer Cyclical,4.73,Safe,6,-2.61,False,-153.92818,17.372,197954027520,2026-06-19
+MCK,McKesson Corporation,Healthcare,6.03,Safe,6,-2.36,False,-41.47127,14.608,87882063872,2026-06-19
+MDT,Medtronic plc,Healthcare,2.63,Grey,6,-2.58,False,2.0786502,12.331,101863424000,2026-06-19
+MRK,"Merck & Co., Inc.",Healthcare,3.9,Safe,4,-2.27,False,6.129953,11.109,281238929408,2026-06-19
+META,"Meta Platforms, Inc.",Communication Services,7.93,Safe,5,-3.01,False,6.0118937,13.99,1465228591104,2026-06-19
+MET,"MetLife, Inc.",Financial Services,,,,,,2.023359,13.22,55065321472,2026-06-19
+MTD,Mettler-Toledo International Inc.,Healthcare,9.33,Safe,6,-2.44,False,-552.2624,20.893,23134468096,2026-06-19
+MGM,MGM Resorts International,Consumer Cyclical,0.76,Distress,6,-2.73,False,4.924824,18.63,11984071680,2026-06-19
+MCHP,Microchip Technology Incorporated,Technology,5.11,Safe,6,-2.47,False,8.408056,46.953,54083248128,2026-06-19
+MU,"Micron Technology, Inc.",Technology,28.73,Safe,7,-2.73,False,17.653221,31.176,1278839095296,2026-06-19
+MSFT,Microsoft Corporation,Technology,7.9,Safe,5,-2.56,False,6.802087,16.116,2818348154880,2026-06-19
+MAA,"Mid-America Apartment Communities, Inc.",Real Estate,1.58,Distress,6,,,2.782503,17.455,15810780160,2026-06-19
+MRNA,"Moderna, Inc.",Healthcare,4.81,Safe,3,-3.5,False,3.4276526,-7.862,25378449408,2026-06-19
+TAP,Molson Coors Beverage Company,Consumer Defensive,0.75,Distress,5,-3.33,False,0.7358297,5.702,7389523968,2026-06-19
+MDLZ,"Mondelez International, Inc.",Consumer Defensive,2.28,Grey,5,-2.4,False,2.997009,19.159,77173022720,2026-06-19
+MPWR,"Monolithic Power Systems, Inc.",Technology,72.18,Safe,5,-2.43,False,20.890558,84.33,76824576000,2026-06-19
+MNST,Monster Beverage Corporation,Consumer Defensive,34.31,Safe,6,,,10.23532,31.186,89331261440,2026-06-19
+MCO,Moody's Corporation,Financial Services,7.01,Safe,8,-2.48,False,26.293467,23.037,78721433600,2026-06-19
+MS,Morgan Stanley,Financial Services,,,,,,3.3722687,,352002670592,2026-06-19
+MOS,The Mosaic Company,Basic Materials,1.92,Grey,7,-2.67,False,0.6166357,6.286,7278688256,2026-06-19
+MSI,"Motorola Solutions, Inc.",Technology,3.66,Safe,6,-2.43,False,25.816294,21.734,65596477440,2026-06-19
+MSCI,MSCI Inc.,Financial Services,5.86,Safe,8,-2.73,False,-15.273171,26.575,42268549120,2026-06-19
+NDAQ,"Nasdaq, Inc.",Financial Services,2.45,Grey,9,-2.59,False,3.8597643,18.498,46510075904,2026-06-19
+NTAP,"NetApp, Inc.",Technology,3.4,Safe,8,-2.74,False,23.169884,16.318,31290372096,2026-06-19
+NFLX,"Netflix, Inc.",Communication Services,9.47,Safe,7,-1.98,False,10.472323,23.521,325831589888,2026-06-19
+NEM,Newmont Corporation,Basic Materials,4.18,Safe,9,-2.71,False,3.188633,6.897,110801305600,2026-06-19
+NWSA,News Corporation,Communication Services,2.2,Grey,,,,1.620409,12.495,13761245184,2026-06-19
+NWS,News Corporation,Communication Services,2.39,Grey,,,,1.8428307,14.076,15650149376,2026-06-19
+NEE,"NextEra Energy, Inc.",Utilities,1.19,Distress,5,,,3.2759335,20.738,180926267392,2026-06-19
+NKE,"NIKE, Inc.",Consumer Cyclical,3.71,Safe,4,-2.39,False,4.747899,18.069,66936094720,2026-06-19
+NI,NiSource Inc.,Utilities,0.87,Distress,6,,,2.345642,14.042,22658297856,2026-06-19
+NDSN,Nordson Corporation,Industrials,5.49,Safe,7,-2.66,False,5.1489425,19.963,16488055808,2026-06-19
+NSC,Norfolk Southern Corporation,Industrials,2.35,Grey,6,-2.7,False,4.264499,15.411,67396165632,2026-06-19
+NTRS,Northern Trust Corporation,Financial Services,,,,,,2.6315708,,31848484864,2026-06-19
+NOC,Northrop Grumman Corporation,Industrials,2.95,Grey,6,-2.44,False,4.3278008,12.833,74070458368,2026-06-19
+NCLH,Norwegian Cruise Line Holdings Ltd.,Consumer Cyclical,0.69,Distress,5,-2.59,False,3.8595166,9.631,9384211456,2026-06-19
+NRG,"NRG Energy, Inc.",Utilities,2.19,Grey,5,-2.48,False,6.803002,22.897,28495831040,2026-06-19
+NUE,Nucor Corporation,Basic Materials,5.27,Safe,6,-2.49,False,2.5884564,13.068,55530074112,2026-06-19
+NVDA,NVIDIA Corporation,Technology,66.69,Safe,4,-1.13,True,26.107807,30.082,5103122644992,2026-06-19
+NVR,"NVR, Inc.",Consumer Cyclical,12.83,Safe,5,-2.06,False,5.0749645,10.107,17520916480,2026-06-19
+NXPI,NXP Semiconductors N.V.,Technology,3.91,Safe,5,-2.58,False,7.2425666,20.388,79091613696,2026-06-19
+ORLY,"O'Reilly Automotive, Inc.",Consumer Cyclical,3.92,Safe,7,-2.49,False,-67.73791,20.471,71965614080,2026-06-19
+OXY,Occidental Petroleum Corporation,Energy,1.42,Distress,4,-2.91,False,1.6761005,6.936,51541970944,2026-06-19
+ODFL,"Old Dominion Freight Line, Inc.",Industrials,26.71,Safe,6,-2.75,False,10.456996,28.054,45969309696,2026-06-19
+OMC,Omnicom Group Inc.,Communication Services,0.88,Distress,3,-1.64,True,2.1548078,9.586,20335192064,2026-06-19
+ON,ON Semiconductor Corporation,Technology,7.76,Safe,4,-3.05,False,6.5271297,23.051,47286247424,2026-06-19
+OKE,"ONEOK, Inc.",Energy,1.56,Distress,6,,,2.3961563,11.721,53571690496,2026-06-19
+ORCL,Oracle Corporation,Technology,2.66,Grey,5,-2.56,False,15.797188,20.994,530026528768,2026-06-19
+OTIS,Otis Worldwide Corporation,Industrials,2.91,Grey,6,-2.43,False,-4.975553,14.375,28114874368,2026-06-19
+PCAR,PACCAR Inc,Industrials,3.58,Safe,4,-2.49,False,3.1684513,21.773,62601748480,2026-06-19
+PKG,Packaging Corporation of America,Consumer Cyclical,3.94,Safe,4,-2.63,False,4.420212,12.3,20405372928,2026-06-19
+PLTR,Palantir Technologies Inc.,Technology,132.27,Safe,8,-1.88,False,36.44539,154.457,307982663680,2026-06-19
+PANW,"Palo Alto Networks, Inc.",Technology,9.67,Safe,4,-2.8,False,8.456159,153.109,234540695552,2026-06-19
+PSKY,Paramount Skydance Corporation,Communication Services,0.51,Distress,5,-3.36,False,0.9493791,8.811,11124580352,2026-06-19
+PH,Parker-Hannifin Corporation,Industrials,6.82,Safe,7,-2.49,False,8.22742,23.261,120194375680,2026-06-19
+PAYX,"Paychex, Inc.",Technology,2.82,Grey,4,-2.13,False,8.769862,24.355,35198496768,2026-06-19
+PYPL,"PayPal Holdings, Inc.",Financial Services,1.83,Grey,9,-2.54,False,1.8937098,6.213,37498302464,2026-06-19
+PNR,Pentair plc,Industrials,4.08,Safe,7,-2.43,False,3.1522245,12.873,12010523648,2026-06-19
+PEP,"PepsiCo, Inc.",Consumer Defensive,3.46,Safe,5,-2.56,False,9.085792,12.931,194132951040,2026-06-19
+PFE,Pfizer Inc.,Healthcare,1.98,Grey,5,-2.52,False,1.5945603,7.87,143682977792,2026-06-19
+PCG,PG&E Corporation,Utilities,0.49,Distress,5,,,1.1459565,9.746,36292661248,2026-06-19
+PM,Philip Morris International Inc.,Consumer Defensive,4.18,Safe,7,-2.39,False,-29.963049,18.036,278046900224,2026-06-19
+PSX,Phillips 66,Energy,3.7,Safe,7,-2.79,False,2.3349354,13.081,66611343360,2026-06-19
+PNW,Pinnacle West Capital Corporation,Utilities,0.75,Distress,4,,,1.7543077,13.012,12399870976,2026-06-19
+PNC,"The PNC Financial Services Group, Inc.",Financial Services,,,,,,1.6154499,,93179060224,2026-06-19
+POOL,Pool Corporation,Industrials,4.33,Safe,5,-2.14,False,6.399215,13.699,7251793408,2026-06-19
+PPG,"PPG Industries, Inc.",Basic Materials,3.81,Safe,6,-2.46,False,3.2524688,12.221,26357925888,2026-06-19
+PPL,PPL Corporation,Utilities,0.98,Distress,6,,,1.7719238,12.712,26618155008,2026-06-19
+PFG,"Principal Financial Group, Inc.",Financial Services,,,,,,2.0072544,10.708,23668475904,2026-06-19
+PG,The Procter & Gamble Company,Consumer Defensive,5.46,Safe,6,-2.53,False,6.515316,15.206,350174740480,2026-06-19
+PGR,The Progressive Corporation,Financial Services,,,,,,3.7343466,8.297,119541645312,2026-06-19
+PLD,"Prologis, Inc.",Real Estate,2.16,Grey,4,-2.19,False,2.4518063,26.702,131692150784,2026-06-19
+PRU,"Prudential Financial, Inc.",Financial Services,,,,,,1.1571676,11.301,37000544256,2026-06-19
+PEG,Public Service Enterprise Group Incorporated,Utilities,1.29,Distress,8,,,2.2993238,13.41,39810895872,2026-06-19
+PTC,PTC Inc.,Technology,4.23,Safe,9,-2.36,False,3.4336755,11.06,13254289408,2026-06-19
+PSA,Public Storage,Real Estate,3.57,Safe,4,9.04,True,11.398066,20.538,55855394816,2026-06-19
+PHM,"PulteGroup, Inc.",Consumer Cyclical,6.16,Safe,5,-2.47,False,1.8696984,8.293,24184147968,2026-06-19
+PWR,"Quanta Services, Inc.",Industrials,5.77,Safe,5,-2.42,False,11.650961,42.868,105379733504,2026-06-19
+QCOM,QUALCOMM Incorporated,Technology,7.68,Safe,6,-3.16,False,8.778244,17.778,238319943680,2026-06-19
+DGX,Quest Diagnostics Incorporated,Healthcare,3.32,Safe,8,-2.67,False,2.938517,12.87,21585803264,2026-06-19
+Q,"Qnity Electronics, Inc.",Technology,3.86,Safe,,-4.06,False,4.926387,24.722,35374137344,2026-06-19
+RL,Ralph Lauren Corporation,Consumer Cyclical,6.41,Safe,8,-2.53,False,8.665213,16.545,24580845568,2026-06-19
+RJF,"Raymond James Financial, Inc.",Financial Services,,,,,,2.4140387,,30374471680,2026-06-19
+RTX,RTX Corporation,Industrials,2.64,Grey,8,-2.33,False,3.771055,18.698,249944440832,2026-06-19
+O,Realty Income Corporation,Real Estate,1.04,Distress,5,-2.52,False,1.4349008,17.196,56173350912,2026-06-19
+REG,Regency Centers Corporation,Real Estate,1.57,Distress,7,-2.5,False,2.1052053,19.036,14371560448,2026-06-19
+REGN,"Regeneron Pharmaceuticals, Inc.",Healthcare,6.55,Safe,5,-2.54,False,1.9782372,12.89,63945519104,2026-06-19
+RF,Regions Financial Corporation,Financial Services,,,,,,1.4019791,,24423723008,2026-06-19
+RSG,"Republic Services, Inc.",Industrials,2.88,Grey,6,-2.74,False,5.2689223,15.069,63052681216,2026-06-19
+RMD,ResMed Inc.,Healthcare,10.16,Safe,8,-2.61,False,4.2143483,12.887,27361986560,2026-06-19
+RVTY,"Revvity, Inc.",Healthcare,2.48,Grey,6,-2.45,False,1.5541223,16.115,11155977216,2026-06-19
+HOOD,"Robinhood Markets, Inc.",Financial Services,2.47,Grey,4,-1.6,True,10.459381,,97389625344,2026-06-19
+ROK,"Rockwell Automation, Inc.",Industrials,6.0,Safe,7,-2.7,False,14.968722,28.224,52720488448,2026-06-19
+ROL,"Rollins, Inc.",Consumer Cyclical,9.53,Safe,6,-2.7,False,15.742297,27.296,21646604288,2026-06-19
+ROP,"Roper Technologies, Inc.",Technology,2.44,Grey,6,-2.53,False,1.7971106,13.811,33328463872,2026-06-19
+ROST,"Ross Stores, Inc.",Consumer Cyclical,7.5,Safe,6,-2.49,False,11.853361,22.096,74677837824,2026-06-19
+RCL,Royal Caribbean Cruises Ltd.,Consumer Cyclical,2.37,Grey,7,-2.85,False,8.54366,15.271,83813613568,2026-06-19
+SPGI,S&P Global Inc.,Financial Services,4.03,Safe,7,-2.44,False,3.9018555,18.464,121632325632,2026-06-19
+CRM,"Salesforce, Inc.",Technology,2.22,Grey,7,-2.66,False,3.6310136,12.652,124307816448,2026-06-19
+SNDK,Sandisk Corporation,Technology,51.86,Safe,,-3.5,False,23.469728,51.74,323539107840,2026-06-19
+SBAC,SBA Communications Corporation,Real Estate,0.39,Distress,7,-2.32,False,-4.1712055,19.695,19819995136,2026-06-19
+SLB,SLB N.V.,Energy,3.07,Safe,4,-2.53,False,2.7465873,11.81,71897325568,2026-06-19
+STX,Seagate Technology Holdings plc,Technology,17.76,Safe,7,-1.48,True,219.30942,66.673,242141790208,2026-06-19
+SRE,Sempra,Utilities,1.08,Distress,6,,,1.8736442,18.885,59284725760,2026-06-19
+NOW,"ServiceNow, Inc.",Technology,5.58,Safe,4,-2.91,False,8.357369,35.232,98015518720,2026-06-19
+SHW,The Sherwin-Williams Company,Basic Materials,3.64,Safe,6,-2.49,False,17.751648,20.505,79118237696,2026-06-19
+SPG,"Simon Property Group, Inc.",Real Estate,1.89,Grey,5,-2.24,False,14.223314,20.297,80301096960,2026-06-19
+SWKS,"Skyworks Solutions, Inc.",Technology,5.04,Safe,6,-2.9,False,1.8898685,11.561,10896912384,2026-06-19
+SJM,The J. M. Smucker Company,Consumer Defensive,1.24,Distress,5,-2.82,False,2.1329486,10.095,11823032320,2026-06-19
+SW,Smurfit Westrock Plc,Consumer Cyclical,1.51,Distress,6,,,1.2819769,7.689,23181312000,2026-06-19
+SNA,Snap-on Incorporated,Industrials,7.91,Safe,6,,,3.366484,14.063,20060291072,2026-06-19
+SOLV,Solventum Corporation,Healthcare,2.14,Grey,6,-2.05,False,2.634189,16.003,13062568960,2026-06-19
+SO,The Southern Company,Utilities,0.99,Distress,4,,,2.8269055,13.177,104940453888,2026-06-19
+LUV,Southwest Airlines Co.,Industrials,2.28,Grey,7,,,3.4103513,11.862,23446476800,2026-06-19
+SWK,"Stanley Black & Decker, Inc.",Industrials,2.11,Grey,7,-2.77,False,1.5021645,11.838,13485770752,2026-06-19
+SBUX,Starbucks Corporation,Consumer Cyclical,2.72,Grey,5,-2.78,False,-13.548257,25.689,114710806528,2026-06-19
+STT,State Street Corporation,Financial Services,,,,,,1.9344198,,46582661120,2026-06-19
+STLD,"Steel Dynamics, Inc.",Basic Materials,5.96,Safe,5,-2.4,False,4.0439167,18.641,36040216576,2026-06-19
+STE,STERIS plc,Healthcare,4.77,Safe,9,-2.68,False,2.7584,13.654,19745900544,2026-06-19
+SYK,Stryker Corporation,Healthcare,4.44,Safe,4,-2.62,False,5.251305,18.984,117998436352,2026-06-19
+SMCI,"Super Micro Computer, Inc.",Technology,4.5,Safe,5,-2.44,False,2.4339128,16.102,18439491584,2026-06-19
+SYF,Synchrony Financial,Financial Services,,,,,,1.6625799,,25315225600,2026-06-19
+SNPS,"Synopsys, Inc.",Technology,3.26,Safe,3,-1.84,False,2.8612258,55.541,87220748288,2026-06-19
+SYY,Sysco Corporation,Consumer Defensive,5.1,Safe,6,,,16.509335,11.278,37632966656,2026-06-19
+TMUS,"T-Mobile US, Inc.",Communication Services,1.55,Distress,6,-2.75,False,3.530315,9.388,196604116992,2026-06-19
+TROW,"T. Rowe Price Group, Inc.",Financial Services,8.51,Safe,4,-2.39,False,2.1463037,7.229,23065800704,2026-06-19
+TTWO,"Take-Two Interactive Software, Inc.",Communication Services,4.22,Safe,7,-2.92,False,12.670373,55.38,44426317824,2026-06-19
+TPR,"Tapestry, Inc.",Consumer Cyclical,3.96,Safe,7,-3.02,False,42.54373,16.767,28993417216,2026-06-19
+TRGP,Targa Resources Corp.,Energy,2.7,Grey,6,-3.06,False,18.092638,14.356,55502618624,2026-06-19
+TGT,Target Corporation,Consumer Defensive,3.07,Safe,6,-2.33,False,3.6218076,9.148,59380948992,2026-06-19
+TEL,TE Connectivity plc,Technology,5.12,Safe,5,-2.84,False,4.804415,14.424,63528202240,2026-06-19
+TDY,Teledyne Technologies Incorporated,Technology,5.01,Safe,7,-2.44,False,2.721694,20.247,28704606208,2026-06-19
+TER,"Teradyne, Inc.",Technology,31.41,Safe,5,-2.2,False,24.449781,55.032,68552945664,2026-06-19
+TSLA,"Tesla, Inc.",Consumer Cyclical,17.97,Safe,5,-2.87,False,18.28972,134.453,1504129843200,2026-06-19
+TXN,Texas Instruments Incorporated,Technology,13.22,Safe,7,-2.67,False,17.511524,33.142,293832556544,2026-06-19
+TPL,Texas Pacific Land Corporation,Energy,92.7,Safe,3,-2.36,False,15.742086,35.276,24493508608,2026-06-19
+TXT,Textron Inc.,Industrials,2.68,Grey,7,-2.66,False,1.9439013,11.286,15557847040,2026-06-19
+TMO,Thermo Fisher Scientific Inc.,Healthcare,3.39,Safe,5,-2.46,False,3.2729156,19.093,172659048448,2026-06-19
+TJX,"The TJX Companies, Inc.",Consumer Cyclical,7.04,Safe,7,-2.57,False,17.797695,21.77,180961624064,2026-06-19
+TKO,"TKO Group Holdings, Inc.",Communication Services,4.09,Safe,7,-2.73,False,4.4139004,16.886,37992083456,2026-06-19
+TTD,"The Trade Desk, Inc.",Communication Services,2.46,Grey,6,-2.98,False,3.5534651,11.174,8701705216,2026-06-19
+TSCO,Tractor Supply Company,Consumer Cyclical,4.06,Safe,6,-2.41,False,6.173949,11.284,15859355648,2026-06-19
+TT,Trane Technologies plc,Industrials,7.37,Safe,9,-2.47,False,12.446893,25.663,106858217472,2026-06-19
+TDG,TransDigm Group Incorporated,Industrials,1.96,Grey,6,-2.32,False,-8.081367,20.8,74297139200,2026-06-19
+TRV,"The Travelers Companies, Inc.",Financial Services,,,,,,2.0459018,6.385,65454161920,2026-06-19
+TRMB,Trimble Inc.,Technology,3.1,Safe,4,-2.26,False,2.0205507,15.015,11459762176,2026-06-19
+TFC,Truist Financial Corporation,Financial Services,,,,,,1.0154428,,60213350400,2026-06-19
+TYL,"Tyler Technologies, Inc.",Technology,4.76,Safe,7,-2.72,False,3.32717,27.015,11474512896,2026-06-19
+TSN,"Tyson Foods, Inc.",Consumer Defensive,3.06,Safe,5,-2.62,False,1.0790722,10.274,19529097216,2026-06-19
+USB,U.S. Bancorp,Financial Services,,,,,,1.5488719,,90566516736,2026-06-19
+UBER,"Uber Technologies, Inc.",Technology,3.56,Safe,6,-2.3,False,5.894356,22.293,145830313984,2026-06-19
+UDR,"UDR, Inc.",Real Estate,1.0,Distress,8,-3.11,False,3.7993124,18.41,13916568576,2026-06-19
+ULTA,"Ulta Beauty, Inc.",Consumer Cyclical,5.81,Safe,6,,,7.185979,11.652,19608715264,2026-06-19
+UNP,Union Pacific Corporation,Industrials,4.02,Safe,8,,,7.8537364,15.037,152513052672,2026-06-19
+UAL,"United Airlines Holdings, Inc.",Industrials,1.42,Distress,7,-2.66,False,2.43557,7.009,38403088384,2026-06-19
+UPS,"United Parcel Service, Inc.",Industrials,2.97,Grey,6,,,5.486318,9.837,89131655168,2026-06-19
+URI,"United Rentals, Inc.",Industrials,3.66,Safe,5,-2.84,False,7.5321946,18.008,67458441216,2026-06-19
+UNH,UnitedHealth Group Incorporated,Healthcare,3.03,Safe,6,,,3.7195497,19.769,364129550336,2026-06-19
+UHS,"Universal Health Services, Inc.",Healthcare,2.94,Grey,8,-2.45,False,1.1448196,5.262,8545916928,2026-06-19
+VLO,Valero Energy Corporation,Energy,5.01,Safe,6,-2.91,False,2.9774206,8.835,70165217280,2026-06-19
+VEEV,Veeva Systems Inc.,Healthcare,10.69,Safe,6,-2.6,False,3.4799783,18.838,24902557696,2026-06-19
+VTR,"Ventas, Inc.",Real Estate,1.9,Grey,6,,,3.0221102,23.501,39671447552,2026-06-19
+VLTO,Veralto Corporation,Industrials,4.49,Safe,5,-2.47,False,6.867184,16.014,20635248640,2026-06-19
+VRSN,"VeriSign, Inc.",Technology,-4.8,Distress,8,-3.14,False,-10.892329,22.319,24082241536,2026-06-19
+VRSK,"Verisk Analytics, Inc.",Industrials,5.39,Safe,7,-3.04,False,77.83251,18.323,22771595264,2026-06-19
+VZ,Verizon Communications Inc.,Communication Services,1.27,Distress,4,-2.69,False,1.8337982,7.611,189445095424,2026-06-19
+VRTX,Vertex Pharmaceuticals Incorporated,Healthcare,12.01,Safe,6,-2.19,False,5.928537,22.034,114626142208,2026-06-19
+VRT,Vertiv Holdings Co,Industrials,10.97,Safe,5,-2.44,False,32.325535,48.612,127927427072,2026-06-19
+VTRS,Viatris Inc.,Healthcare,0.65,Distress,5,-3.25,False,1.2027545,7.488,17899175936,2026-06-19
+VICI,VICI Properties Inc.,Real Estate,1.82,Grey,6,-2.88,False,0.9966249,11.925,28297783296,2026-06-19
+V,Visa Inc.,Financial Services,7.58,Safe,6,-2.49,False,17.55391,21.177,622326579200,2026-06-19
+VST,Vistra Corp.,Utilities,1.43,Distress,5,-2.54,False,21.120857,11.081,55213629440,2026-06-19
+VMC,Vulcan Materials Company,Basic Materials,4.27,Safe,9,-2.69,False,4.639377,18.765,39294967808,2026-06-19
+WRB,W. R. Berkley Corporation,Financial Services,,,,,,2.5707943,10.194,25009551360,2026-06-19
+GWW,"W.W. Grainger, Inc.",Industrials,13.76,Safe,6,-2.55,False,16.40822,21.007,64465268736,2026-06-19
+WAB,Westinghouse Air Brake Technologies Corporation,Industrials,3.62,Safe,5,-2.47,False,4.1927085,20.88,46462746624,2026-06-19
+WMT,Walmart Inc.,Consumer Defensive,6.43,Safe,7,,,9.37365,23.075,932527669248,2026-06-19
+DIS,The Walt Disney Company,Communication Services,2.38,Grey,8,-2.62,False,1.6676565,11.367,180406173696,2026-06-19
+WBD,"Warner Bros. Discovery, Inc.",Communication Services,0.97,Distress,7,-2.58,False,2.0161602,12.789,65686986752,2026-06-19
+WM,"Waste Management, Inc.",Industrials,2.82,Grey,7,-2.8,False,8.614669,14.424,86178160640,2026-06-19
+WAT,Waters Corporation,Healthcare,12.58,Safe,4,-2.37,False,2.2817233,35.716,34899181568,2026-06-19
+WEC,"WEC Energy Group, Inc.",Utilities,1.12,Distress,5,,,2.6816325,15.273,36536647680,2026-06-19
+WFC,Wells Fargo & Company,Financial Services,,,,,,1.545287,,251547566080,2026-06-19
+WELL,Welltower Inc.,Real Estate,3.75,Safe,7,-3.02,False,3.4164364,55.921,145877204992,2026-06-19
+WST,"West Pharmaceutical Services, Inc.",Healthcare,15.7,Safe,7,-2.79,False,7.7753806,26.536,23168878592,2026-06-19
+WDC,Western Digital Corporation,Technology,19.38,Safe,6,-2.36,False,35.679176,59.38,257212153856,2026-06-19
+WY,Weyerhaeuser Company,Real Estate,2.13,Grey,4,-2.45,False,1.857765,32.987,17535756288,2026-06-19
+WSM,"Williams-Sonoma, Inc.",Consumer Cyclical,7.68,Safe,4,-2.62,False,12.941712,16.725,26719059968,2026-06-19
+WMB,"The Williams Companies, Inc.",Energy,1.37,Distress,7,-2.68,False,6.995791,17.443,89425633280,2026-06-19
+WTW,Willis Towers Watson Public Limited Company,Financial Services,1.35,Distress,6,,,3.0161207,10.726,24103122944,2026-06-19
+WDAY,"Workday, Inc.",Technology,2.52,Grey,8,-2.78,False,3.882138,20.347,28878608384,2026-06-19
+WYNN,"Wynn Resorts, Limited",Consumer Cyclical,1.24,Distress,5,-2.53,False,-39.259674,11.498,10952612864,2026-06-19
+XEL,Xcel Energy Inc.,Utilities,0.94,Distress,5,,,2.0446923,14.32,48324710400,2026-06-19
+XYL,Xylem Inc.,Industrials,3.85,Safe,6,-2.49,False,2.3640993,14.717,26483808256,2026-06-19
+YUM,"Yum! Brands, Inc.",Consumer Cyclical,2.54,Grey,5,-2.58,False,-5.7476177,18.681,41891672064,2026-06-19
+ZBRA,Zebra Technologies Corporation,Technology,3.13,Safe,5,-2.57,False,3.2903414,13.687,11240527872,2026-06-19
+ZBH,"Zimmer Biomet Holdings, Inc.",Healthcare,2.34,Grey,5,-2.59,False,1.3424591,9.453,17018894336,2026-06-19
+ZTS,Zoetis Inc.,Healthcare,4.6,Safe,6,-2.45,False,10.040821,9.958,32997445632,2026-06-19

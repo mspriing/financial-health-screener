@@ -86,25 +86,40 @@ h2,h3,h4{font-family:'Sora','Inter',sans-serif;color:var(--text);letter-spacing:
 
 /* ---- data-source nav (radio styled as a segmented control, always visible) ---- */
 .navlabel{font-family:'Sora',sans-serif;font-size:.74rem;font-weight:600;text-transform:uppercase;
-  letter-spacing:.16em;color:var(--faint);margin:6px 0 10px;}
+  letter-spacing:.16em;color:var(--faint);margin:6px 0 6px;}
+/* helper line naming the three as switchable modes */
+.navhelp{color:var(--muted);font-size:.85rem;line-height:1.5;margin:0 0 12px;max-width:62ch;}
 [data-testid="stRadio"] [role="radiogroup"]{display:inline-flex;flex-direction:row;flex-wrap:wrap;
-  gap:4px;background:var(--bg-2);border:1px solid var(--border);border-radius:13px;padding:5px;}
-[data-testid="stRadio"] [role="radiogroup"] label{margin:0 !important;padding:9px 20px !important;
-  border-radius:9px;border:1px solid transparent;cursor:pointer;
+  gap:6px;background:var(--bg-2);border:1px solid var(--border);border-radius:13px;padding:5px;}
+/* every segment reads as a button at all times: visible surface + border + readable text */
+[data-testid="stRadio"] [role="radiogroup"] label{margin:0 !important;padding:9px 18px !important;
+  display:inline-flex;align-items:center;gap:8px;min-height:44px;
+  border-radius:9px;border:1px solid var(--border);background:var(--surface);cursor:pointer;
   transition:color .18s var(--ease),background .18s var(--ease),border-color .18s var(--ease);}
 /* hide the native radio dot so each option reads as a segment button */
 [data-testid="stRadio"] [role="radiogroup"] label > div:first-child{display:none !important;}
-[data-testid="stRadio"] [role="radiogroup"] label p{color:var(--muted);font-weight:600 !important;
+[data-testid="stRadio"] [role="radiogroup"] label p{color:var(--text);font-weight:600 !important;
   transition:color .18s var(--ease);}
-[data-testid="stRadio"] [role="radiogroup"] label:hover{background:rgba(255,255,255,.07);}
-[data-testid="stRadio"] [role="radiogroup"] label:hover p{color:var(--text);}
+/* leading glyph per mode, in source order (Sample / Live / Manual) */
+[data-testid="stRadio"] [role="radiogroup"] label::before{font-size:.95rem;line-height:1;opacity:.85;}
+[data-testid="stRadio"] [role="radiogroup"] label:nth-of-type(1)::before{content:"\\25A6";}
+[data-testid="stRadio"] [role="radiogroup"] label:nth-of-type(2)::before{content:"\\25C9";}
+[data-testid="stRadio"] [role="radiogroup"] label:nth-of-type(3)::before{content:"\\270E";}
+[data-testid="stRadio"] [role="radiogroup"] label:hover{background:var(--surface-2);border-color:var(--border-2);}
 /* selected tab: solid accent fill so the active mode is unmistakable */
 [data-testid="stRadio"] [role="radiogroup"] label:has(input:checked){
   background:var(--accent);border-color:var(--accent);
   box-shadow:0 2px 14px -4px rgba(54,213,196,.55);}
 [data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) p{color:#04201C !important;}
+[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked)::before{opacity:1;color:#04201C;}
 [data-testid="stRadio"] [role="radiogroup"] label:has(input:checked):hover{background:var(--accent);}
 .panelcap{color:var(--muted);font-size:.84rem;line-height:1.55;margin:8px 0 2px;}
+/* sample-mode callout — only shown while viewing built-in sample data */
+.samplenote{display:flex;align-items:center;gap:9px;margin:0 0 14px;padding:9px 14px;
+  border:1px solid var(--accent-line);border-left:3px solid var(--accent);border-radius:10px;
+  background:var(--accent-soft);color:var(--text);font-size:.86rem;line-height:1.5;}
+.samplenote::before{content:"\\25A6";color:var(--accent);font-size:1rem;line-height:1;}
+.samplenote strong{font-weight:600;}
 
 /* ---- card primitive ---- */
 .card{position:relative;z-index:1;background:linear-gradient(180deg,var(--surface),var(--bg-2));
@@ -262,6 +277,10 @@ a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius
 @media (max-width:640px){
   .vright{border-left:none;padding-left:0;border-top:1px solid var(--border);padding-top:16px;}
   .score .num{font-size:2.6rem;}
+  /* stack the data-source segments as full-width, tappable vertical rows */
+  [data-testid="stRadio"] [role="radiogroup"]{display:flex;flex-direction:column;width:100%;gap:8px;}
+  [data-testid="stRadio"] [role="radiogroup"] label{width:100%;justify-content:center;
+    min-height:48px;padding:13px 18px !important;}
 }
 </style>
 """, unsafe_allow_html=True)
@@ -359,7 +378,9 @@ st.markdown("""
 # ============================ DATA SOURCE NAV ===============================
 # Always-visible segmented control in the main content area (no collapsible sidebar,
 # so a control can never disappear with no way to bring it back).
-st.markdown('<div class="navlabel reveal" style="--d:.04s">Data source</div>',
+st.markdown('<div class="navlabel reveal" style="--d:.04s">Data source</div>'
+            '<div class="navhelp reveal" style="--d:.04s">Switch how you load a company — a built-in '
+            'sample, a live ticker from Yahoo Finance, or your own numbers.</div>',
             unsafe_allow_html=True)
 SOURCES = ["Sample company", "Live ticker", "Manual entry"]
 source = st.radio("Data source", SOURCES, horizontal=True,
@@ -451,6 +472,12 @@ summary = {
 integ = (", with <strong>earnings-quality red flags</strong>."
          if verdict["integrity"] == "Possible manipulation"
          else ", and the earnings look clean." if verdict["integrity"] == "Clean" else ".")
+
+if source == "Sample company":
+    st.markdown(
+        '<div class="samplenote reveal" style="--d:.04s">You\'re viewing <strong>sample data</strong> '
+        '— switch to <strong>Live ticker</strong> above to screen any public company.</div>',
+        unsafe_allow_html=True)
 
 st.markdown(f"""
 <div class="card verdict v-{health_tone} reveal" style="--d:.05s">

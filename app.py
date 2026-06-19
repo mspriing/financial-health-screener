@@ -15,6 +15,7 @@ import streamlit.components.v1 as components
 from data import PRESETS, blank_payload, fetch_live, run_models, LINE_ITEMS
 from commentary import explain
 from benchmark import load_universe, sector_stats, position
+from screener import value_targets, strategic_targets, sectors as snapshot_sectors, fmt_z
 
 st.set_page_config(page_title="Financial Health & Red-Flag Screener",
                    layout="wide", initial_sidebar_state="collapsed")
@@ -297,6 +298,44 @@ h2,h3,h4{font-family:'Sora','Inter',sans-serif;color:var(--text);letter-spacing:
   text-transform:uppercase;letter-spacing:.11em;padding-top:2px;}
 .bench .thin b{color:var(--muted);font-weight:600;}
 
+/* ---- M&A target screener ---- */
+.maintro{color:var(--muted);font-size:.93rem;line-height:1.62;margin:0 0 4px;max-width:78ch;}
+.maintro b{color:var(--text);font-weight:600;}
+.macount{color:var(--faint);font-size:.82rem;letter-spacing:.04em;margin:14px 0 4px;}
+.macount b{color:var(--text);font-weight:600;}
+/* ranked target card */
+.mcard{padding:18px 20px 17px;margin-bottom:11px;}
+.mcard .mtop{display:flex;align-items:flex-start;gap:14px;}
+.mcard .mrank{flex:0 0 auto;font-family:'Sora',sans-serif;font-variant-numeric:tabular-nums;
+  font-size:.82rem;font-weight:700;color:var(--accent);background:var(--accent-soft);
+  border:1px solid var(--accent-line);border-radius:8px;min-width:30px;height:26px;
+  display:inline-flex;align-items:center;justify-content:center;padding:0 7px;margin-top:1px;}
+.mcard .mid{flex:1 1 auto;min-width:0;}
+.mcard .mname{font-size:1.02rem;line-height:1.3;}
+.mcard .mname b{font-family:'Sora',sans-serif;font-weight:700;color:var(--text);letter-spacing:-.01em;}
+.mcard .mname .mco{color:var(--muted);font-weight:500;margin-left:8px;}
+.mcard .msector{color:var(--faint);font-size:.74rem;text-transform:uppercase;letter-spacing:.12em;
+  font-weight:600;margin-top:4px;}
+.mcard .mfit{flex:0 0 auto;color:var(--faint);font-size:.72rem;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;font-variant-numeric:tabular-nums;text-align:right;padding-top:3px;}
+.mcard .mfit b{display:block;color:var(--text);font-family:'Sora',sans-serif;font-size:1.05rem;
+  font-weight:700;letter-spacing:-.01em;}
+/* stat strip */
+.mcard .mstats{display:flex;flex-wrap:wrap;gap:8px 9px;margin:14px 0 0;}
+.mcard .mstat{display:inline-flex;align-items:baseline;gap:7px;padding:6px 11px;border-radius:8px;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  font-size:.84rem;color:var(--text);font-variant-numeric:tabular-nums lining-nums;}
+.mcard .mstat i{font-style:normal;color:var(--faint);font-size:.68rem;font-weight:600;
+  text-transform:uppercase;letter-spacing:.09em;}
+.mcard .mstat em{font-style:normal;font-weight:600;font-size:.78rem;}
+.mcard .mstat .z-green,.mcard .mstat .clean{color:var(--green);}
+.mcard .mstat .z-amber{color:var(--amber);}
+.mcard .mstat .z-red,.mcard .mstat .flag{color:var(--red);}
+.mcard .mstat .z-gray{color:var(--gray);}
+.mcard .mwhy{margin:13px 0 0;color:var(--muted);font-size:.92rem;line-height:1.55;
+  font-variant-numeric:tabular-nums;}
+.mcard .mwhy b{color:var(--text);font-weight:600;}
+
 /* ---- inputs / controls ---- */
 .stTextInput input,.stNumberInput input,[data-baseweb="select"]>div{
   background:var(--surface) !important;border:1px solid var(--border) !important;
@@ -520,6 +559,45 @@ def bench_bar(metric, value, stat, sector):
         f'</div>')
 
 
+_ZONE_CLASS = {"Safe": "z-green", "Grey": "z-amber", "Distress": "z-red"}
+
+
+def _mfmt(v, dec):
+    """Format a numeric stat, or an em-dash when it's missing."""
+    return f"{v:.{dec}f}" if isinstance(v, (int, float)) else "&mdash;"
+
+
+def screener_card(rank, item, delay):
+    """One ranked M&A-target card: identity, a scannable stat strip, and the thesis line."""
+    z, zone = item["z"], item["zone"]
+    zcls = _ZONE_CLASS.get(zone, "z-gray")
+    zone_html = (f'{fmt_z(z)} <em class="{zcls}">{zone}</em>' if z is not None
+                 else '<em class="z-gray">N/A</em>')
+    f = item["f_score"]
+    f_html = f"{f}<span style='color:var(--faint)'>/9</span>" if f is not None else "&mdash;"
+    m_html = ('<em class="flag">Flag</em>' if item["m_flag"] else '<em class="clean">Clean</em>')
+
+    stats = (
+        f'<span class="mstat"><i>Z</i> {zone_html}</span>'
+        f'<span class="mstat"><i>F</i> {f_html}</span>'
+        f'<span class="mstat"><i>M</i> {m_html}</span>'
+        f'<span class="mstat"><i>P/B</i> {_mfmt(item["price_to_book"], 2)}</span>'
+        f'<span class="mstat"><i>EV/EBITDA</i> {_mfmt(item["ev_ebitda"], 1)}</span>'
+    )
+    return (
+        f'<div class="card mcard reveal" style="--d:{delay:.2f}s">'
+        f'<div class="mtop">'
+        f'<span class="mrank">{rank:02d}</span>'
+        f'<div class="mid"><div class="mname"><b>{item["ticker"]}</b>'
+        f'<span class="mco">{item["name"]}</span></div>'
+        f'<div class="msector">{item["sector"] or "—"}</div></div>'
+        f'<div class="mfit">fit<b>{item["fit_score"]:.1f}</b></div>'
+        f'</div>'
+        f'<div class="mstats">{stats}</div>'
+        f'<p class="mwhy">{item["why"]}</p>'
+        f'</div>')
+
+
 def bench_thin(metric, value, name):
     """A skipped metric: either the company has no score, or the sector is too thin."""
     cfg = _BENCH_META[metric]
@@ -550,6 +628,66 @@ st.markdown("""
   company's primary filings. Use it at your own discretion.</div>
 </div>
 """, unsafe_allow_html=True)
+
+# ============================ TOP-LEVEL VIEW TOGGLE =========================
+# Two views: the original single-company flow (DEFAULT — unchanged below) and the new
+# sector-wide M&A target screener. Styled as the same segmented control as Data source.
+st.markdown('<div class="navlabel reveal" style="--d:.03s">View</div>', unsafe_allow_html=True)
+VIEWS = ["Screen a company", "M&A target screener"]
+view = st.radio("View", VIEWS, horizontal=True, label_visibility="collapsed", key="view")
+
+# --------------------------- M&A TARGET SCREENER ---------------------------
+if view == "M&A target screener":
+    st.markdown('<div class="seclabel scroll-reveal" style="margin-top:22px"><span class="t">'
+                'M&amp;A target screener</span><span class="ln"></span></div>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="maintro">Companies matching a classic acquisition <b>profile</b>, pulled from '
+        'a committed S&amp;P 500 snapshot — a starting point for diligence, <b>not a prediction '
+        'that any deal will happen</b>. Valuations are screened for quality: it excludes '
+        'financials the Altman model can’t read (banks/insurers with no Z) and distorted '
+        'valuations (negative or near-zero price-to-book).</p>', unsafe_allow_html=True)
+
+    MODES = ["Value / distress targets", "Strategic targets"]
+    ma_mode = st.radio("Screen", MODES, horizontal=True, label_visibility="collapsed",
+                       key="ma_mode")
+    _explain = ("<b>Strong business, weak balance sheet.</b> Operationally strong (F&ge;6) but in "
+                "real, non-terminal stress (grey-zone Z), clean earnings, and cheap versus sector "
+                "peers — the classic leveraged-buyout shape."
+                if ma_mode == MODES[0] else
+                "<b>Strong, clean operators.</b> Safe-zone Z or high F with clean earnings — the "
+                "kind of healthy business a strategic buyer wants to own.")
+    st.markdown(f'<p class="maintro" style="margin-top:8px">{_explain}</p>', unsafe_allow_html=True)
+
+    _rows = load_peers()
+    _sector_opts = ["All sectors"] + snapshot_sectors(_rows)
+    sector_pick = st.selectbox("Sector", _sector_opts, label_visibility="collapsed")
+
+    _targets = (value_targets(_rows, sector=sector_pick) if ma_mode == MODES[0]
+                else strategic_targets(_rows, sector=sector_pick))
+
+    if not _targets:
+        where = "any sector" if sector_pick == "All sectors" else sector_pick
+        reason = (" The value screen also excludes banks/insurers, which have no Altman Z."
+                  if ma_mode == MODES[0] else "")
+        st.markdown(
+            f'<div class="note empty reveal" style="--d:.05s">No companies in '
+            f'<strong>{where}</strong> match this profile in the snapshot.{reason} Try another '
+            f'sector or switch modes.</div>', unsafe_allow_html=True)
+    else:
+        scope = "across all sectors" if sector_pick == "All sectors" else f"in {sector_pick}"
+        st.markdown(f'<p class="macount">Showing <b>{len(_targets)}</b> '
+                    f'{"match" if len(_targets) == 1 else "matches"} {scope}, ranked by fit.</p>',
+                    unsafe_allow_html=True)
+        cards = "".join(screener_card(i + 1, item, min(i * 0.04, 0.4))
+                        for i, item in enumerate(_targets))
+        st.markdown(cards, unsafe_allow_html=True)
+
+    st.markdown(
+        '<div class="scroll-reveal" style="margin-top:26px;color:var(--faint);font-size:.8rem;'
+        'line-height:1.6;">Profiles read precomputed Altman Z, Piotroski F and Beneish M from the '
+        'snapshot — no scoring math is re-run here. Educational screen, not investment advice.</div>',
+        unsafe_allow_html=True)
+    st.stop()
 
 # ============================ DATA SOURCE NAV ===============================
 # Always-visible segmented control in the main content area (no collapsible sidebar,

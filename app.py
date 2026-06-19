@@ -307,6 +307,7 @@ h2,h3,h4{font-family:'Sora','Inter',sans-serif;color:var(--text);letter-spacing:
 .maintro b{color:var(--text);font-weight:600;}
 .macount{color:var(--faint);font-size:.82rem;letter-spacing:.04em;margin:14px 0 4px;}
 .macount b{color:var(--text);font-weight:600;}
+.manote{color:var(--faint);font-size:.78rem;line-height:1.55;margin:0 0 12px;max-width:74ch;opacity:.85;}
 /* ranked target card */
 .mcard{padding:18px 20px 17px;margin-bottom:11px;}
 .mcard .mtop{display:flex;align-items:flex-start;gap:14px;}
@@ -320,10 +321,6 @@ h2,h3,h4{font-family:'Sora','Inter',sans-serif;color:var(--text);letter-spacing:
 .mcard .mname .mco{color:var(--muted);font-weight:500;margin-left:8px;}
 .mcard .msector{color:var(--faint);font-size:.74rem;text-transform:uppercase;letter-spacing:.12em;
   font-weight:600;margin-top:4px;}
-.mcard .mfit{flex:0 0 auto;color:var(--faint);font-size:.72rem;font-weight:600;letter-spacing:.06em;
-  text-transform:uppercase;font-variant-numeric:tabular-nums;text-align:right;padding-top:3px;}
-.mcard .mfit b{display:block;color:var(--text);font-family:'Sora',sans-serif;font-size:1.05rem;
-  font-weight:700;letter-spacing:-.01em;}
 /* stat strip */
 .mcard .mstats{display:flex;flex-wrap:wrap;gap:8px 9px;margin:14px 0 0;}
 .mcard .mstat{display:inline-flex;align-items:baseline;gap:7px;padding:6px 11px;border-radius:8px;
@@ -339,6 +336,31 @@ h2,h3,h4{font-family:'Sora','Inter',sans-serif;color:var(--text);letter-spacing:
 .mcard .mwhy{margin:13px 0 0;color:var(--muted);font-size:.92rem;line-height:1.55;
   font-variant-numeric:tabular-nums;}
 .mcard .mwhy b{color:var(--text);font-weight:600;}
+/* expandable "why it's a target": the evidence behind the one-line thesis */
+.mcard .mdetail{margin-top:12px;}
+.mcard .mdetail > summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;
+  gap:8px;padding:9px 0 1px;color:var(--accent);font-size:.8rem;font-weight:600;letter-spacing:.02em;
+  -webkit-tap-highlight-color:transparent;transition:color .18s var(--ease);}
+.mcard .mdetail > summary::-webkit-details-marker{display:none;}
+.mcard .mdetail > summary::after{content:"";width:7px;height:7px;flex:none;border-right:1.6px solid currentColor;
+  border-bottom:1.6px solid currentColor;transform:rotate(45deg) translateY(-1px);
+  transition:transform .2s var(--ease);}
+.mcard .mdetail[open] > summary::after{transform:rotate(-135deg) translateY(0);}
+.mcard .mdetail > summary:hover{color:var(--text);}
+.mcard .mdetail > summary:focus-visible{outline:2px solid var(--accent-line);outline-offset:3px;border-radius:5px;}
+.mcard .mdgrid{margin-top:8px;border-top:1px solid var(--border);padding-top:2px;
+  animation:mdreveal .28s var(--ease) both;}
+@keyframes mdreveal{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+.mcard .mdrow{display:grid;grid-template-columns:130px 1fr;gap:8px 16px;padding:10px 0;
+  border-top:1px solid rgba(255,255,255,.05);}
+.mcard .mdrow:first-child{border-top:none;}
+.mcard .mdtag{color:var(--faint);font-size:.69rem;font-weight:600;text-transform:uppercase;
+  letter-spacing:.1em;padding-top:3px;line-height:1.35;}
+.mcard .mdrow p{margin:0;color:var(--muted);font-size:.9rem;line-height:1.58;
+  font-variant-numeric:tabular-nums;}
+@media (max-width:560px){.mcard .mdrow{grid-template-columns:1fr;gap:2px;}}
+@media (prefers-reduced-motion:reduce){.mcard .mdetail > summary::after,
+  .mcard .mdgrid{transition:none;animation:none;}}
 
 /* ---- inputs / controls ---- */
 .stTextInput input,.stNumberInput input,[data-baseweb="select"]>div{
@@ -571,8 +593,15 @@ def _mfmt(v, dec):
     return f"{v:.{dec}f}" if isinstance(v, (int, float)) else "N/A"
 
 
+_DETAIL_ROWS = (("The business", "operations"), ("The balance sheet", "balance_sheet"),
+                ("The price", "valuation"), ("The read", "read"))
+
+
 def screener_card(rank, item, delay):
-    """One ranked M&A-target card: identity, a scannable stat strip, and the thesis line."""
+    """One ranked M&A-target card: identity, a scannable stat strip, the thesis line, and an
+    expandable 'why it's a target' detail built purely from the snapshot scores (screener._detail).
+    The leading number is the match rank (the list is sorted best-fit first); the old opaque
+    'fit' figure is gone from the card face and explained once in the note above the list."""
     z, zone = item["z"], item["zone"]
     zcls = _ZONE_CLASS.get(zone, "z-gray")
     zone_html = (f'{fmt_z(z)} <em class="{zcls}">{zone}</em>' if z is not None
@@ -588,17 +617,23 @@ def screener_card(rank, item, delay):
         f'<span class="mstat"><i>P/B</i> {_mfmt(item["price_to_book"], 2)}</span>'
         f'<span class="mstat"><i>EV/EBITDA</i> {_mfmt(item["ev_ebitda"], 1)}</span>'
     )
+    detail_rows = "".join(
+        f'<div class="mdrow"><span class="mdtag">{label}</span><p>{item[key]}</p></div>'
+        for label, key in _DETAIL_ROWS if item.get(key)
+    )
+    detail = (f'<details class="mdetail"><summary><span>Why it&rsquo;s a target</span></summary>'
+              f'<div class="mdgrid">{detail_rows}</div></details>') if detail_rows else ""
     return (
         f'<div class="card mcard reveal" style="--d:{delay:.2f}s">'
         f'<div class="mtop">'
-        f'<span class="mrank">{rank:02d}</span>'
+        f'<span class="mrank" title="Match rank within the selected profile">{rank:02d}</span>'
         f'<div class="mid"><div class="mname"><b>{item["ticker"]}</b>'
         f'<span class="mco">{item["name"]}</span></div>'
         f'<div class="msector">{item["sector"] or "Unknown"}</div></div>'
-        f'<div class="mfit">fit<b>{item["fit_score"]:.1f}</b></div>'
         f'</div>'
         f'<div class="mstats">{stats}</div>'
         f'<p class="mwhy">{item["why"]}</p>'
+        f'{detail}'
         f'</div>')
 
 
@@ -644,11 +679,14 @@ if view == "M&A target screener":
     st.markdown('<div class="seclabel scroll-reveal" style="margin-top:22px"><span class="t">'
                 'M&amp;A target screener</span><span class="ln"></span></div>', unsafe_allow_html=True)
     st.markdown(
-        '<p class="maintro">Companies matching a classic acquisition profile, pulled from '
-        'a committed S&amp;P 500 snapshot. It is a starting point for diligence, not a prediction '
-        'that any deal will happen. Valuations are screened for quality: it excludes '
-        'financials the Altman model can’t read (banks/insurers with no Z) and distorted '
-        'valuations (negative or near-zero price-to-book).</p>', unsafe_allow_html=True)
+        '<p class="maintro">This screen surfaces public companies that match a classic acquisition '
+        'profile, read straight from a committed S&amp;P 500 snapshot. Value and distress targets are '
+        'strong businesses trading cheaply while under balance-sheet stress, the buy-cheap and then '
+        'fix-the-balance-sheet play. Strategic targets are strong, clean operators a buyer might '
+        'simply want to own. These are profiles worth a look, not a prediction that any deal will '
+        'happen, and the valuations are quality-screened: financials the Altman model can’t read '
+        '(banks and insurers with no Z) and distorted price-to-book values are left out.</p>',
+        unsafe_allow_html=True)
 
     MODES = ["Value / distress targets", "Strategic targets"]
     ma_mode = st.radio("Screen", MODES, horizontal=True, label_visibility="collapsed",
@@ -679,7 +717,10 @@ if view == "M&A target screener":
     else:
         scope = "across all sectors" if sector_pick == "All sectors" else f"in {sector_pick}"
         st.markdown(f'<p class="macount">Showing <b>{len(_targets)}</b> '
-                    f'{"match" if len(_targets) == 1 else "matches"} {scope}, ranked by fit.</p>',
+                    f'{"match" if len(_targets) == 1 else "matches"} {scope}, ordered by match rank.</p>'
+                    f'<p class="manote">The leading number on each card is its match rank: how closely '
+                    f'the company fits the selected profile. It only orders this list and is not a score '
+                    f'to compare across sectors. Open “Why it’s a target” on any card for the evidence.</p>',
                     unsafe_allow_html=True)
         cards = "".join(screener_card(i + 1, item, min(i * 0.04, 0.4))
                         for i, item in enumerate(_targets))

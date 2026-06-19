@@ -121,4 +121,43 @@ check("cheap-on-PB but pricey-on-EV company is NOT a value target", "HALFCHEAP" 
 ok = universe + [row("REALCHEAP", z=2.3, zone="Grey", f=8, flag="False", pb=1.0, ev=8.0)]
 check("cheap on both metrics still surfaces", "REALCHEAP" in [d["ticker"] for d in value_targets(ok)])
 
+print("PER-COMPANY DETAIL — 'why it's a target' fields are present, specific, and mode-aware")
+DETAIL_KEYS = ("operations", "balance_sheet", "valuation", "read")
+# Every value result must carry all four detail fields as non-empty plain sentences.
+for d in vt:
+    for k in DETAIL_KEYS:
+        check(f"value result {d['ticker']} carries a non-empty '{k}'",
+              isinstance(d.get(k), str) and d[k].strip().endswith("."))
+# The detail must never contain an em/en dash or a curly apostrophe (plain copy only).
+for d in vt:
+    blob = " ".join(d[k] for k in DETAIL_KEYS)
+    check(f"value detail for {d['ticker']} has no em/en dash", "—" not in blob and "–" not in blob)
+    check(f"value detail for {d['ticker']} uses straight apostrophes", "’" not in blob)
+
+gd = next(d for d in vt if d["ticker"] == "GOODBUY")
+check("operations names the actual F out of 9", "Piotroski F of 8 out of 9" in gd["operations"])
+check("balance sheet names the actual Z and its zone",
+      "Altman Z of 2.3" in gd["balance_sheet"] and "grey zone" in gd["balance_sheet"])
+# Valuation must cite a real sector-relative number, not just a verdict.
+check("valuation cites the sector median with a number",
+      "sector median of" in gd["valuation"] and "percent" in gd["valuation"])
+check("valuation quotes the company's own price-to-book", "price-to-book of 2.0" in gd["valuation"])
+check("value read frames the discount / stressed-balance-sheet thesis",
+      "discount" in gd["read"] and "balance sheet" in gd["read"])
+
+# Strategic results carry the same fields, but the read and balance-sheet framing differ.
+sd_list = strategic_targets(universe)
+sd = next(d for d in sd_list if d["ticker"] == "PEER1")   # Safe-zone Z, valid valuations
+for k in DETAIL_KEYS:
+    check(f"strategic result {sd['ticker']} carries a non-empty '{k}'",
+          isinstance(sd.get(k), str) and sd[k].strip().endswith("."))
+check("strategic valuation still cites a sector-relative number",
+      "sector median of" in sd["valuation"])
+check("strategic balance sheet frames Z as strength, not stress",
+      "strength" in sd["balance_sheet"] and "stress" not in sd["balance_sheet"])
+check("value vs strategic read differ", gd["read"] != sd["read"])
+check("strategic read is the 'clean operator / exposure' thesis",
+      "clean operator" in sd["read"] and "exposure" in sd["read"])
+check("value read is the 'value-buyout' thesis", "value-buyout" in gd["read"])
+
 print(f"\n{passed} checks passed.")

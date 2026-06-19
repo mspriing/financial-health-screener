@@ -188,6 +188,7 @@ def value_targets(rows: List[dict], sector: Optional[str] = None) -> List[dict]:
         item = _base(r)
         item["fit_score"] = fit
         item["why"] = _value_why(item, med, disc_pb, disc_ev)
+        item.update(_detail(item, med, "value"))
         out.append(item)
 
     out.sort(key=lambda d: d["fit_score"], reverse=True)
@@ -218,6 +219,7 @@ def strategic_targets(rows: List[dict], sector: Optional[str] = None) -> List[di
     Strong, clean businesses a strategic buyer would want. Gates: not Beneish-flagged,
     and either safe-zone Z (> 2.99) OR F >= 7. Ranked by F, then Z. Returns the top ~12.
     """
+    medians = sector_valuation_medians(rows)     # for the valuation line in the detail
     out: List[dict] = []
     for r in _in_sector(rows, sector):
         if _is_flagged(r.get("m_flag")):
@@ -235,6 +237,8 @@ def strategic_targets(rows: List[dict], sector: Optional[str] = None) -> List[di
         z_tie = min(z, Z_DISPLAY_CAP) if z is not None else 0
         item["fit_score"] = round((f or 0) + z_tie / 100.0, 3)
         item["why"] = _strategic_why(item)
+        med = medians.get(r.get("sector"), {"pb": None, "ev": None})
+        item.update(_detail(item, med, "strategic"))
         out.append(item)
 
     out.sort(key=lambda d: d["fit_score"], reverse=True)
@@ -254,3 +258,95 @@ def _strategic_why(item: dict) -> str:
     head = ", ".join(bits)
     where = f" in {sector}" if sector else ""
     return f"{head}. A strong, clean operator{where}."
+
+
+# ----------------------------------------------------------------------------
+# PER-COMPANY DETAIL  ("why it's a target": the evidence behind the one-line thesis)
+#
+# Four plain-sentence fields, each derived ONLY from the snapshot scores already on the
+# result dict (F, Z/zone, P/B, EV/EBITDA, sector). No live data, no recomputation, so the
+# detail stays pure and testable and can never disagree with the numbers on the card.
+# 'mode' is "value" or "strategic"; it changes how the balance sheet and the read are framed
+# (stress is the opportunity for value; strength is the point for strategic).
+# ----------------------------------------------------------------------------
+def _operations_text(f) -> str:
+    """What the Piotroski F-score says about the operating business."""
+    if f is None:
+        return "Piotroski F is not available, so operating strength can't be read for this company."
+    if f >= 7:
+        desc = "strong, improving fundamentals"
+    elif f >= 3:
+        desc = "moderate fundamentals, a mixed operating picture"
+    else:
+        desc = "weak fundamentals"
+    return f"Piotroski F of {f} out of 9: {desc}."
+
+
+def _balance_sheet_text(z, zone, mode: str) -> str:
+    """What the Altman Z and its zone say about the balance sheet, framed by mode."""
+    if z is None:
+        if mode == "strategic":
+            return ("Altman Z is not available, so the case rests on the Piotroski strength and "
+                    "clean earnings rather than the Z model.")
+        return "Altman Z is not available, so this company's balance sheet can't be read by the Altman model."
+    zdisp = fmt_z(z)
+    if mode == "strategic":
+        framing = {
+            "Safe": "sits in the safe zone, a sign of balance-sheet strength.",
+            "Grey": ("sits in the grey zone, so the balance sheet is adequate and the case rests "
+                     "mainly on strong, clean operations."),
+            "Distress": ("sits in the distress zone, so this name leans on its operating strength "
+                         "rather than its balance sheet."),
+        }.get(zone, "is outside the model's usual range.")
+    else:
+        framing = {
+            "Grey": "sits in the grey zone: real balance-sheet stress, but not terminal distress.",
+            "Distress": "sits in the distress zone: clear balance-sheet stress a buyer would need to fix.",
+            "Safe": "sits in the safe zone, so the balance sheet is sound rather than stressed.",
+        }.get(zone, "is outside the model's usual range.")
+    return f"Altman Z of {zdisp} {framing}"
+
+
+def _valuation_text(pb, ev, med: dict) -> str:
+    """
+    The actual valuation versus the sector median, in numbers. Only valid, positive
+    valuations are cited (negatives and glitch values are dropped, same guards as the screen).
+    """
+    med_pb, med_ev = med.get("pb"), med.get("ev")
+    parts = []                                   # (label, article, value, sector_median)
+    if valid_pb(pb) and med_pb:
+        parts.append(("price-to-book", "a", pb, med_pb))
+    if valid_ev(ev) and med_ev:
+        parts.append(("EV/EBITDA", "an", ev, med_ev))
+    if not parts:
+        return "No clean sector-relative valuation is available for this company in the snapshot."
+
+    label, article, v, m = parts[0]
+    pct = round((1 - v / m) * 100)
+    direction = "below" if v < m else "above"
+    text = (f"Trades at {article} {label} of {v:.1f} versus the sector median of {m:.1f}, "
+            f"about {abs(pct)} percent {direction}.")
+    if len(parts) > 1:
+        label2, _a, v2, m2 = parts[1]
+        text += f" {label2} of {v2:.1f} versus {m2:.1f}."
+    return text
+
+
+def _read_text(mode: str, sector) -> str:
+    """One plain sentence on why a buyer would care."""
+    if mode == "value":
+        return ("For a buyer, this is a strong operation available at a discount because the "
+                "market is fixated on the stressed balance sheet, the classic value-buyout setup.")
+    where = f" in {sector}" if sector else ""
+    return ("For a buyer, this is a healthy, clean operator that adds exposure to a strong "
+            f"business{where}.")
+
+
+def _detail(item: dict, med: dict, mode: str) -> dict:
+    """Bundle the four 'why it's a target' fields, all from the snapshot scores on `item`."""
+    return {
+        "operations": _operations_text(item.get("f_score")),
+        "balance_sheet": _balance_sheet_text(item.get("z"), item.get("zone"), mode),
+        "valuation": _valuation_text(item.get("price_to_book"), item.get("ev_ebitda"), med),
+        "read": _read_text(mode, item.get("sector")),
+    }

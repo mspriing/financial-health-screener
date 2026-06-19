@@ -5,3 +5,7 @@ venv/
 .env
 .DS_Store
 .streamlit/secrets.toml
+LINKEDIN.md
+DESIGN_PROMPT.md
+DESIGN_PROMPT_2.md
+HANDOFF.md

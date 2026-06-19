@@ -176,6 +176,15 @@ h2,h3,h4{font-family:'Sora','Inter',sans-serif;color:var(--text);letter-spacing:
 .score .num .suffix{font-size:1.3rem;color:var(--muted);font-weight:500;letter-spacing:0;}
 .score .cap{color:var(--muted);font-size:.79rem;line-height:1.5;margin-top:13px;
   font-variant-numeric:tabular-nums;}
+/* one-line "what it measures + which way is good", secondary to the title */
+.score .smeasure{color:var(--muted);font-size:.84rem;line-height:1.45;margin-top:10px;max-width:34ch;}
+.score .smeasure b{color:var(--text);font-weight:600;}
+/* threshold mini-legend: colored zone swatches lifted out of the old tiny caption */
+.score .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:13px;}
+.score .legend .lg{display:inline-flex;align-items:center;gap:6px;color:var(--muted);
+  font-size:.76rem;line-height:1.3;font-variant-numeric:tabular-nums;}
+.score .legend .lg i{width:10px;height:10px;border-radius:3px;flex:none;}
+.score .legend .lg b{color:var(--text);font-weight:600;}
 .score .pillrow{margin-top:4px;}
 /* equal-height score cards: stretch the column chain so all three match the tallest */
 [data-testid="stHorizontalBlock"]:has(.card.score){align-items:stretch;}
@@ -339,10 +348,18 @@ def num_na():
     return '<div class="num na">N/A</div>'
 
 
-def score_card(icon, stitle, ssub, body, delay):
+def legend(items):
+    """items: list of (css_color_var, label_html). Renders the threshold zone legend."""
+    cells = "".join(
+        f'<span class="lg"><i style="background:var({c})"></i>{t}</span>' for c, t in items)
+    return f'<div class="legend">{cells}</div>'
+
+
+def score_card(icon, stitle, ssub, measure, body, delay):
     return (f'<div class="card score scroll-reveal" style="--d:{delay}s">'
             f'<div class="icon">{icon}</div>'
             f'<div class="stitle">{stitle}</div><div class="ssub">{ssub}</div>'
+            f'<div class="smeasure">{measure}</div>'
             f'{body}</div>')
 
 
@@ -517,8 +534,12 @@ with c1:
         zt = {"Safe": "green", "Grey": "amber", "Distress": "red"}[altman.zone]
         g = gauge(altman.z / 6.0, [(30, "--red-trk"), (50, "--amber-trk"), (100, "--green-trk")])
         body = (num(altman.z, 2) + g + f'<div class="pillrow">{pill(altman.zone, zt)}</div>'
-                + '<div class="cap">Safe above 2.99 &middot; Grey 1.81 to 2.99 &middot; Distress below 1.81</div>')
-    st.markdown(score_card(_ICON_ALTMAN, "Altman Z-Score", "Distress risk", body, 0.06),
+                + legend([("--red", "Distress &lt; 1.81"),
+                          ("--amber", "Grey 1.81&ndash;2.99"),
+                          ("--green", "Safe &ge; 2.99")]))
+    st.markdown(score_card(_ICON_ALTMAN, "Altman Z-Score", "Distress risk",
+                           "Distance from bankruptcy risk &mdash; <b>higher is safer</b>.",
+                           body, 0.06),
                 unsafe_allow_html=True)
 
 # --- Piotroski F ---
@@ -527,13 +548,18 @@ with c2:
         body = (num_na() + f'<div class="pillrow">{pill("Not applicable", "gray")}</div>'
                 + '<div class="cap">Not computable for this company.</div>')
     else:
-        ft = "green" if piotroski.score >= 7 else "amber" if piotroski.score >= 4 else "red"
-        flbl = ("Strong" if piotroski.score >= 7 else "Middling" if piotroski.score >= 4 else "Weak")
-        g = gauge(piotroski.score / 9.0, [(33, "--red-trk"), (78, "--amber-trk"), (100, "--green-trk")])
+        # bands: 7-9 Strong, 3-6 Moderate, 0-2 Weak (label, color, gauge, legend all agree)
+        ft = "green" if piotroski.score >= 7 else "amber" if piotroski.score >= 3 else "red"
+        flbl = ("Strong" if piotroski.score >= 7 else "Moderate" if piotroski.score >= 3 else "Weak")
+        g = gauge(piotroski.score / 9.0, [(28, "--red-trk"), (72, "--amber-trk"), (100, "--green-trk")])
         body = (num(piotroski.score, 0, suffix="/ 9") + g
                 + f'<div class="pillrow">{pill(flbl, ft)}</div>'
-                + '<div class="cap">8 to 9 strong &middot; 4 to 7 middling &middot; 0 to 3 weak</div>')
-    st.markdown(score_card(_ICON_PIO, "Piotroski F-Score", "Fundamental strength", body, 0.1),
+                + legend([("--red", "Weak 0&ndash;2"),
+                          ("--amber", "Moderate 3&ndash;6"),
+                          ("--green", "Strong 7&ndash;9")]))
+    st.markdown(score_card(_ICON_PIO, "Piotroski F-Score", "Fundamental strength",
+                           "Nine pass/fail fundamentals (0&ndash;9) &mdash; <b>more passed is stronger</b>.",
+                           body, 0.1),
                 unsafe_allow_html=True)
 
 # --- Beneish M ---
@@ -548,8 +574,12 @@ with c3:
         bt = "red" if beneish.flag else "green"
         blbl = "Possible manipulation" if beneish.flag else "Clean"
         body = (num(beneish.m, 2) + g + f'<div class="pillrow">{pill(blbl, bt)}</div>'
-                + '<div class="cap">Above &minus;1.78 means possible manipulation</div>')
-    st.markdown(score_card(_ICON_BEN, "Beneish M-Score", "Earnings red flags", body, 0.14),
+                + legend([("--green", "Clean below &minus;1.78"),
+                          ("--red", "Possible manipulation above &minus;1.78")]))
+    st.markdown(score_card(_ICON_BEN, "Beneish M-Score", "Earnings red flags",
+                           "How closely the accounting resembles known earnings manipulators "
+                           "&mdash; <b>lower (more negative) is cleaner</b>.",
+                           body, 0.14),
                 unsafe_allow_html=True)
 
 if notes:

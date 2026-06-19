@@ -13,6 +13,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from data import PRESETS, blank_payload, fetch_live, run_models, LINE_ITEMS
+from commentary import explain
 
 st.set_page_config(page_title="Financial Health & Red-Flag Screener",
                    layout="wide", initial_sidebar_state="collapsed")
@@ -239,6 +240,19 @@ h2,h3,h4{font-family:'Sora','Inter',sans-serif;color:var(--text);letter-spacing:
 .tag-fail{color:var(--faint);font-weight:600;}
 .formula{margin-top:12px;color:var(--faint);font-size:.79rem;line-height:1.5;
   font-variant-numeric:tabular-nums;}
+
+/* ---- "why the scores read this way" — analyst commentary ---- */
+.why{padding:6px 26px 20px;}
+.why .wrow{display:flex;gap:18px;padding:15px 0;border-bottom:1px solid var(--border);}
+.why .wtag{flex:0 0 86px;font-family:'Sora',sans-serif;font-size:.7rem;font-weight:600;
+  text-transform:uppercase;letter-spacing:.11em;color:var(--faint);padding-top:3px;}
+.why .wtext{margin:0;color:var(--muted);font-size:.97rem;line-height:1.58;flex:1;
+  font-variant-numeric:tabular-nums lining-nums;}
+.why .wtext b,.why .wtext strong{color:var(--text);font-weight:600;}
+.why .woverall{display:flex;gap:18px;margin-top:18px;padding-top:18px;
+  border-top:1px solid var(--border-2);}
+.why .woverall .wtag{color:var(--accent);}
+.why .woverall .wtext{color:var(--text);font-weight:500;}
 
 /* ---- inputs / controls ---- */
 .stTextInput input,.stNumberInput input,[data-baseweb="select"]>div{
@@ -586,6 +600,25 @@ if notes:
     with st.expander("Why are some scores marked N/A?"):
         for k, v in notes.items():
             st.markdown(f"- **{k}:** {v}")
+
+# ============================ WHY (analyst commentary) ======================
+# Computed only from the models' own numbers (see commentary.py) — reproducible,
+# no external data. One tight sentence per applicable model + an overall line.
+why = explain(altman, piotroski, beneish, verdict)
+st.markdown('<div class="seclabel scroll-reveal"><span class="t">Why the scores read this '
+            'way</span><span class="ln"></span></div>', unsafe_allow_html=True)
+
+_why_rows = "".join(
+    f'<div class="wrow"><span class="wtag">{label}</span>'
+    f'<p class="wtext">{why[key]}</p></div>'
+    for label, key in (("Altman", "altman"), ("Piotroski", "piotroski"), ("Beneish", "beneish"))
+    if why[key]
+)
+st.markdown(
+    f'<div class="card why reveal" style="--d:.05s">{_why_rows}'
+    f'<div class="woverall"><span class="wtag">Overall</span>'
+    f'<p class="wtext">{why["overall"]}</p></div></div>',
+    unsafe_allow_html=True)
 
 # ============================ BREAKDOWNS ====================================
 st.markdown('<div class="seclabel scroll-reveal"><span class="t">Under the hood</span><span class="ln"></span></div>',

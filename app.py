@@ -165,7 +165,11 @@ h2,h3,h4{font-family:'Sora','Inter',sans-serif;color:var(--text);letter-spacing:
 .pill.gray{background:var(--gray-bg);border-color:rgba(144,153,168,.34);color:var(--gray);}
 
 /* ---- score cards ---- */
-.score{padding:22px 22px 20px;height:100%;}
+/* min-height is the guaranteed floor: it sizes every card to the tallest (Beneish, whose
+   measure line + two-row legend run longest), so the three line up exactly even if the
+   flex-stretch chain below doesn't take. The flex chain still equalizes upward if any
+   card ever overflows this floor. */
+.score{padding:22px 22px 20px;height:100%;min-height:430px;}
 .score .icon{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;
   border-radius:10px;background:var(--accent-soft);border:1px solid var(--accent-line);
   color:var(--accent);margin-bottom:14px;}
@@ -679,23 +683,21 @@ if view == "M&A target screener":
     st.markdown('<div class="seclabel scroll-reveal" style="margin-top:22px"><span class="t">'
                 'M&amp;A target screener</span><span class="ln"></span></div>', unsafe_allow_html=True)
     st.markdown(
-        '<p class="maintro">This screen surfaces public companies that match a classic acquisition '
-        'profile, read straight from a committed S&amp;P 500 snapshot. Value and distress targets are '
-        'strong businesses trading cheaply while under balance-sheet stress, the buy-cheap and then '
-        'fix-the-balance-sheet play. Strategic targets are strong, clean operators a buyer might '
-        'simply want to own. These are profiles worth a look, not a prediction that any deal will '
-        'happen, and the valuations are quality-screened: financials the Altman model can’t read '
-        '(banks and insurers with no Z) and distorted price-to-book values are left out.</p>',
+        '<p class="maintro">This screen surfaces public companies that match a classic '
+        'acquisition profile, read straight from a committed S&amp;P 500 snapshot. It is a '
+        'profile worth a look, not a prediction that any deal will happen.</p>'
+        '<p class="manote">The valuation screen leaves out financials the Altman model can’t '
+        'read (banks and insurers, which have no Z) and distorted price-to-book values.</p>',
         unsafe_allow_html=True)
 
     MODES = ["Value / distress targets", "Strategic targets"]
     ma_mode = st.radio("Screen", MODES, horizontal=True, label_visibility="collapsed",
                        key="ma_mode")
     _explain = ("<b>Strong business, weak balance sheet.</b> Operationally strong (F&ge;6) but in "
-                "real, non-terminal stress (grey-zone Z), clean earnings, and cheap versus sector "
-                "peers. This is the classic leveraged-buyout shape."
+                "real, non-terminal stress (grey zone Z), clean earnings, and cheap versus sector "
+                "peers. This is the classic leveraged buyout shape."
                 if ma_mode == MODES[0] else
-                "<b>Strong, clean operators.</b> Safe-zone Z or high F with clean earnings. The "
+                "<b>Strong, clean operators.</b> Safe zone Z or high F with clean earnings. The "
                 "kind of healthy business a strategic buyer wants to own.")
     st.markdown(f'<p class="maintro" style="margin-top:8px">{_explain}</p>', unsafe_allow_html=True)
 

@@ -197,7 +197,7 @@ def value_targets(rows: List[dict], sector: Optional[str] = None) -> List[dict]:
 
 def _value_why(item: dict, med: dict, disc_pb, disc_ev) -> str:
     z, f, zone = item["z"], item["f_score"], item["zone"]
-    zone_label = {"Grey": "Grey-zone", "Safe": "Safe-zone", "Distress": "Distress-zone"}.get(zone, "")
+    zone_label = {"Grey": "Grey zone", "Safe": "Safe zone", "Distress": "Distress zone"}.get(zone, "")
     # Quote the valuation it's actually cheap on (prefer P/B when both apply).
     if disc_pb is not None and med.get("pb"):
         mult = item["price_to_book"] / med["pb"]
@@ -249,7 +249,7 @@ def _strategic_why(item: dict) -> str:
     z, f, sector = item["z"], item["f_score"], item["sector"]
     bits = []
     if z is not None and z > SAFE_Z:
-        bits.append(f"Safe-zone Z {fmt_z(z)}")
+        bits.append(f"Safe zone Z {fmt_z(z)}")
     elif z is not None:
         bits.append(f"Z {fmt_z(z)}")
     if f is not None:
@@ -292,7 +292,7 @@ def _balance_sheet_text(z, zone, mode: str) -> str:
     zdisp = fmt_z(z)
     if mode == "strategic":
         framing = {
-            "Safe": "sits in the safe zone, a sign of balance-sheet strength.",
+            "Safe": "sits in the safe zone, a sign of balance sheet strength.",
             "Grey": ("sits in the grey zone, so the balance sheet is adequate and the case rests "
                      "mainly on strong, clean operations."),
             "Distress": ("sits in the distress zone, so this name leans on its operating strength "
@@ -300,8 +300,8 @@ def _balance_sheet_text(z, zone, mode: str) -> str:
         }.get(zone, "is outside the model's usual range.")
     else:
         framing = {
-            "Grey": "sits in the grey zone: real balance-sheet stress, but not terminal distress.",
-            "Distress": "sits in the distress zone: clear balance-sheet stress a buyer would need to fix.",
+            "Grey": "sits in the grey zone: real balance sheet stress, but not terminal distress.",
+            "Distress": "sits in the distress zone: clear balance sheet stress a buyer would need to fix.",
             "Safe": "sits in the safe zone, so the balance sheet is sound rather than stressed.",
         }.get(zone, "is outside the model's usual range.")
     return f"Altman Z of {zdisp} {framing}"
@@ -336,7 +336,7 @@ def _read_text(mode: str, sector) -> str:
     """One plain sentence on why a buyer would care."""
     if mode == "value":
         return ("For a buyer, this is a strong operation available at a discount because the "
-                "market is fixated on the stressed balance sheet, the classic value-buyout setup.")
+                "market is fixated on the stressed balance sheet, the classic value buyout setup.")
     where = f" in {sector}" if sector else ""
     return ("For a buyer, this is a healthy, clean operator that adds exposure to a strong "
             f"business{where}.")

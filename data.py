@@ -260,16 +260,19 @@ def fetch_live(ticker: str) -> dict:
         pass
 
     # Sector — needed to benchmark the company against its peers (see benchmark.py).
-    # Prefer yfinance's own classification; fall back to the committed snapshot by ticker.
+    # Resolve from the committed snapshot FIRST: it needs no network and is reliable on
+    # Streamlit Cloud, where the live .info call for the sector routinely fails (AAPL ->
+    # Technology, JPM -> Financial Services, all proven offline). Only fall back to
+    # yfinance's own .info classification for tickers the snapshot doesn't carry.
     sector = None
     try:
-        sector = ((getattr(t, "info", {}) or {}).get("sector") or "").strip() or None
+        from benchmark import load_universe, lookup_sector
+        sector = lookup_sector(load_universe(), ticker.upper())
     except Exception:
         sector = None
     if not sector:
         try:
-            from benchmark import load_universe, lookup_sector
-            sector = lookup_sector(load_universe(), ticker.upper())
+            sector = ((getattr(t, "info", {}) or {}).get("sector") or "").strip() or None
         except Exception:
             sector = None
 

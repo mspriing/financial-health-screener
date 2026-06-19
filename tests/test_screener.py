@@ -71,7 +71,7 @@ check("glitch 0.001 P/B never counts as cheap", "GLITCH" not in tickers)
 check("negative-book company never counts as cheap", "NEGBOOK" not in tickers)
 check("financial (null Z) excluded from value screen", "BANK" not in tickers)
 good = next(d for d in vt if d["ticker"] == "GOODBUY")
-check("value 'why' names the grey zone and F", "Grey-zone Z 2.3" in good["why"] and "F=8" in good["why"])
+check("value 'why' names the grey zone and F", "Grey zone Z 2.3" in good["why"] and "F=8" in good["why"])
 check("value 'why' quotes a sector-relative multiple", "the sector’s median" in good["why"])
 check("value result carries a fit_score", isinstance(good["fit_score"], (int, float)))
 
@@ -88,7 +88,7 @@ check("Beneish-flagged company excluded from strategic too", "FLAGGED" not in st
 universe2 = universe + [row("STAR", sector="Defensive", z=5.1, zone="Safe", f=8, flag="False")]
 star = strategic_targets(universe2, sector="Defensive")
 check("strong clean operator surfaces in its sector", star and star[0]["ticker"] == "STAR")
-check("strategic 'why' reads cleanly", "Safe-zone Z 5.1" in star[0]["why"]
+check("strategic 'why' reads cleanly", "Safe zone Z 5.1" in star[0]["why"]
       and "clean earnings" in star[0]["why"] and "Defensive" in star[0]["why"])
 
 print("ASSET-LIGHT Z — capped display and ranking (Altman degrades for low-liability firms)")
@@ -158,6 +158,6 @@ check("strategic balance sheet frames Z as strength, not stress",
 check("value vs strategic read differ", gd["read"] != sd["read"])
 check("strategic read is the 'clean operator / exposure' thesis",
       "clean operator" in sd["read"] and "exposure" in sd["read"])
-check("value read is the 'value-buyout' thesis", "value-buyout" in gd["read"])
+check("value read is the 'value buyout' thesis", "value buyout" in gd["read"])
 
 print(f"\n{passed} checks passed.")

@@ -206,7 +206,7 @@ def _value_why(item: dict, med: dict, disc_pb, disc_ev) -> str:
         val_phrase = f"trading at {mult:.1f}x the sector’s median EV/EBITDA"
     else:
         val_phrase = "cheap vs its sector"
-    return (f"{zone_label} Z {fmt_z(z)} with F={f}, {val_phrase} — strong operations, "
+    return (f"{zone_label} Z {fmt_z(z)} with F={f}, {val_phrase}. Strong operations, "
             f"stressed balance sheet, cheap.")
 
 
@@ -253,4 +253,4 @@ def _strategic_why(item: dict) -> str:
     bits.append("clean earnings")
     head = ", ".join(bits)
     where = f" in {sector}" if sector else ""
-    return f"{head} — a strong, clean operator{where}."
+    return f"{head}. A strong, clean operator{where}."

@@ -74,7 +74,7 @@ def run_models(payload: dict):
 # Illustrative sample companies (NOT real filings — designed to show the range)
 # ----------------------------------------------------------------------------
 PRESETS = {
-    "Bluechip Industries  —  (sample: healthy)": {
+    "Bluechip Industries (sample: healthy)": {
         "meta": {"name": "Bluechip Industries", "ticker": "SAMPLE", "source": "Illustrative sample data",
                  "period_curr": "FY (latest)", "period_prior": "FY (prior)", "is_financial": False},
         "market_value_equity": 12000,
@@ -87,7 +87,7 @@ PRESETS = {
                       sga=560, long_term_debt=1000, net_income=560, cfo=700,
                       retained_earnings=2100, ebit=780, total_liabilities=2450, shares=1000),
     },
-    "Legacy Retail Co.  —  (sample: distressed)": {
+    "Legacy Retail Co. (sample: distressed)": {
         "meta": {"name": "Legacy Retail Co.", "ticker": "SAMPLE", "source": "Illustrative sample data",
                  "period_curr": "FY (latest)", "period_prior": "FY (prior)", "is_financial": False},
         "market_value_equity": 300,
@@ -100,7 +100,7 @@ PRESETS = {
                       sga=540, long_term_debt=1000, net_income=-80, cfo=60,
                       retained_earnings=-380, ebit=120, total_liabilities=2600, shares=480),
     },
-    "Momentum Software Co.  —  (sample: earnings red flags)": {
+    "Momentum Software Co. (sample: earnings red flags)": {
         "meta": {"name": "Momentum Software Co.", "ticker": "SAMPLE", "source": "Illustrative sample data",
                  "period_curr": "FY (latest)", "period_prior": "FY (prior)", "is_financial": False},
         "market_value_equity": 4000,
@@ -179,15 +179,15 @@ def fetch_live(ticker: str) -> dict:
                     "CRYPTOCURRENCY": "a cryptocurrency"}.get(quote_type, "an index or fund")
             raise RuntimeError(
                 f"“{raw}” is {kind}, not a single company. An index like the S&P 500, Nasdaq, "
-                "or Dow — and the funds that track them (SPY, QQQ, DIA) — is a basket of hundreds "
-                "of companies, so it has no single set of financial statements for these "
+                "or Dow, along with the funds that track them (SPY, QQQ, DIA), is a basket of "
+                "hundreds of companies, so it has no single set of financial statements for these "
                 "company-level models to read. Enter one company's ticker instead "
                 "(e.g. AAPL, MSFT, KO).")
         raise RuntimeError(
             f"Couldn't find company financials for “{raw}.” Common reasons: the symbol is "
             "mistyped (try AAPL for Apple, MSFT for Microsoft); it's a private company "
             "(like SpaceX) with no public filings; it's a foreign listing or ADR that Yahoo "
-            "doesn't fully cover; or Yahoo is briefly rate-limiting — in which case wait a few "
+            "doesn't fully cover; or Yahoo is briefly rate-limiting, in which case wait a few "
             "seconds and try again.")
 
     ta = _row(bs, "Total Assets")

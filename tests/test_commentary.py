@@ -96,7 +96,7 @@ strong_prior = dict(net_income=50, cfo=60, total_assets=1000, long_term_debt=150
                     sales=1000, cogs=650)
 p9 = piotroski_f(strong_curr, strong_prior)
 p9out = explain(None, p9, None, {"health": "Healthy", "integrity": "Clean"})
-check("9/9 reads as full marks", "F = 9/9 — full marks" in p9out["piotroski"])
+check("9/9 reads as full marks", "F = 9/9, with full marks" in p9out["piotroski"])
 check("9/9 has no 'lost points'", "lost points" not in p9out["piotroski"])
 
 

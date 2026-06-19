@@ -16,7 +16,7 @@ def check(name, cond):
 
 
 print("BANK-LIKE COMPANY (no current-asset structure, no COGS)")
-bank = copy.deepcopy(PRESETS["Bluechip Industries  —  (sample: healthy)"])
+bank = copy.deepcopy(PRESETS["Bluechip Industries (sample: healthy)"])
 for yr in ("curr", "prior"):
     for k in ("current_assets", "current_liabilities", "cogs", "receivables"):
         bank[yr][k] = None
@@ -29,7 +29,7 @@ check("integrity == Not enough data", verdict["integrity"] == "Not enough data")
 check("notes explain all three", len(notes) == 3)
 
 print("SINGLE-YEAR DATA (prior year missing)")
-one = copy.deepcopy(PRESETS["Bluechip Industries  —  (sample: healthy)"])
+one = copy.deepcopy(PRESETS["Bluechip Industries (sample: healthy)"])
 one["prior"] = {k: None for k in one["prior"]}
 altman, piotroski, beneish, verdict, notes = run_models(one)    # must NOT raise
 check("Altman still computes (uses current year only)", altman is not None)
@@ -38,7 +38,7 @@ check("Beneish is N/A (needs prior year)", beneish is None)
 check("health still derived from Altman", verdict["health"] in ("Healthy", "Watch", "Distressed"))
 
 print("NORMAL COMPANY still fully scores")
-ok = run_models(PRESETS["Momentum Software Co.  —  (sample: earnings red flags)"])
+ok = run_models(PRESETS["Momentum Software Co. (sample: earnings red flags)"])
 a, p, b, v, n = ok
 check("all three present", a is not None and p is not None and b is not None)
 check("no N/A notes", len(n) == 0)

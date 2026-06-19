@@ -86,7 +86,7 @@ def _altman_sentence(altman) -> str:
     if altman.zone == "Distress":
         return (f"Z is in the distress zone, dragged down mainly by {drags}; "
                 f"{support} is the main support.")
-    return f"Z lands in the grey zone — {drags} weigh it down while {support} holds it up."
+    return f"Z lands in the grey zone, where {drags} weigh it down while {support} holds it up."
 
 
 # ----------------------------------------------------------------------------
@@ -106,7 +106,7 @@ _BENEISH_NAMES = {
 }
 # these indices rise with growth / aggressive accruals, not only with manipulation
 _BENEISH_GROWTH_ACCRUAL = {"TATA", "SGI", "DSRI"}
-_GROWTH_CAVEAT = (" — though these signal rapid growth or aggressive accruals as much "
+_GROWTH_CAVEAT = (", though these signal rapid growth or aggressive accruals as much "
                   "as manipulation, so validate before concluding")
 
 
@@ -173,7 +173,7 @@ def _piotroski_sentence(piotroski) -> str:
 
     score = piotroski.score
     if not failed:
-        return (f"F = {score}/9 — full marks across profitability, leverage & liquidity, "
+        return (f"F = {score}/9, with full marks across profitability, leverage & liquidity, "
                 "and operating efficiency.")
 
     full_cats = [c for c in _PIOTROSKI_ORDER if passed_by_cat[c] == total_by_cat[c]]

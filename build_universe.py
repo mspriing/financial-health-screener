@@ -131,7 +131,7 @@ def main() -> None:
             print(f"Warning: couldn't read existing {OUT_PATH} ({e}); starting fresh.")
             done, resuming = set(), False
     if done:
-        print(f"Resuming: {len(done)} tickers already in {OUT_PATH} — skipping those.\n",
+        print(f"Resuming: {len(done)} tickers already in {OUT_PATH}, skipping those.\n",
               flush=True)
 
     # 3) write INCREMENTALLY: append when resuming (header already present), else
@@ -155,7 +155,7 @@ def main() -> None:
                     if attempt == 1:
                         time.sleep(1.5)              # brief backoff before the retry
                         continue
-                    print(f"[{i}/{total}] {ticker} FAIL — {type(e).__name__}: "
+                    print(f"[{i}/{total}] {ticker} FAIL ({type(e).__name__}): "
                           f"{str(e)[:80]}", flush=True)
             if row is not None:
                 writer.writerow({k: ("" if row[k] is None else row[k]) for k in CSV_COLUMNS})
@@ -192,6 +192,6 @@ if __name__ == "__main__":
     try:
         main()
     except Exception:
-        print("\nFATAL ERROR — build aborted:")
+        print("\nFATAL ERROR: build aborted.")
         traceback.print_exc()
         raise

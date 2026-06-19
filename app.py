@@ -117,7 +117,7 @@ h2,h3,h4{font-family:'Sora','Inter',sans-serif;color:var(--text);letter-spacing:
 [data-testid="stRadio"] [role="radiogroup"] label:has(input:checked)::before{opacity:1;color:#04201C;}
 [data-testid="stRadio"] [role="radiogroup"] label:has(input:checked):hover{background:var(--accent);}
 .panelcap{color:var(--muted);font-size:.84rem;line-height:1.55;margin:8px 0 2px;}
-/* sample-mode callout — only shown while viewing built-in sample data */
+/* sample-mode callout: only shown while viewing built-in sample data */
 .samplenote{display:flex;align-items:center;gap:9px;margin:0 0 14px;padding:9px 14px;
   border:1px solid var(--accent-line);border-left:3px solid var(--accent);border-radius:10px;
   background:var(--accent-soft);color:var(--text);font-size:.86rem;line-height:1.5;}
@@ -189,14 +189,18 @@ h2,h3,h4{font-family:'Sora','Inter',sans-serif;color:var(--text);letter-spacing:
 .score .legend .lg i{width:10px;height:10px;border-radius:3px;flex:none;}
 .score .legend .lg b{color:var(--text);font-weight:600;}
 .score .pillrow{margin-top:4px;}
-/* equal-height score cards: stretch the column chain so all three match the tallest */
+/* equal-height score cards: stretch the WHOLE column chain so all three rows match the
+   tallest card no matter how long each card's legend/measure text runs. Every Streamlit
+   wrapper between the column and the .card is forced to grow, and the card fills it. */
 [data-testid="stHorizontalBlock"]:has(.card.score){align-items:stretch;}
-[data-testid="stColumn"]:has(.card.score){display:flex;flex-direction:column;}
+[data-testid="stColumn"]:has(.card.score),
+[data-testid="stColumn"]:has(.card.score) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.card.score) [data-testid="stVerticalBlock"],
 [data-testid="stColumn"]:has(.card.score) [data-testid="stElementContainer"],
 [data-testid="stColumn"]:has(.card.score) [data-testid="stMarkdown"],
 [data-testid="stColumn"]:has(.card.score) [data-testid="stMarkdownContainer"]{
-  display:flex;flex-direction:column;flex:1 1 auto;height:100%;}
+  display:flex;flex-direction:column;flex:1 1 auto;align-self:stretch;height:auto;}
+[data-testid="stColumn"]:has(.card.score) .card.score{flex:1 1 auto;height:100%;}
 
 /* ---- gauge ---- */
 .gauge{position:relative;height:6px;border-radius:6px;margin:16px 0 4px;overflow:visible;
@@ -243,7 +247,7 @@ h2,h3,h4{font-family:'Sora','Inter',sans-serif;color:var(--text);letter-spacing:
 .formula{margin-top:12px;color:var(--faint);font-size:.79rem;line-height:1.5;
   font-variant-numeric:tabular-nums;}
 
-/* ---- "why the scores read this way" — analyst commentary ---- */
+/* ---- "why the scores read this way": analyst commentary ---- */
 .why{padding:6px 26px 20px;}
 .why .wrow{display:flex;gap:18px;padding:15px 0;border-bottom:1px solid var(--border);}
 .why .wtag{flex:0 0 86px;font-family:'Sora',sans-serif;font-size:.7rem;font-weight:600;
@@ -256,7 +260,7 @@ h2,h3,h4{font-family:'Sora','Inter',sans-serif;color:var(--text);letter-spacing:
 .why .woverall .wtag{color:var(--accent);}
 .why .woverall .wtext{color:var(--text);font-weight:500;}
 
-/* ---- sector benchmark — where the company lands vs its peers ---- */
+/* ---- sector benchmark: where the company lands vs its peers ---- */
 .bench{padding:4px 26px 14px;}
 .bench .intro{color:var(--muted);font-size:.9rem;line-height:1.58;margin:0 0 4px;}
 .bench .intro b{color:var(--text);font-weight:600;}
@@ -271,8 +275,8 @@ h2,h3,h4{font-family:'Sora','Inter',sans-serif;color:var(--text);letter-spacing:
 .bench .bvals{font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums lining-nums;}
 .bench .bvals b{color:var(--text);font-weight:600;}
 .bench .bvals .sep{color:var(--faint);margin:0 9px;}
-/* the bar: a neutral rail, an accent interquartile band (p25–p75), a median tick,
-   and the company's pointer — color carries no sole meaning (read line + labels back it). */
+/* the bar: a neutral rail, an accent interquartile band (p25 to p75), a median tick,
+   and the company's pointer. color carries no sole meaning (read line + labels back it). */
 .bench .track{position:relative;height:8px;border-radius:6px;background:rgba(255,255,255,.07);
   margin:26px 0 11px;}
 .bench .iqr{position:absolute;top:0;bottom:0;border-radius:6px;background:var(--accent-soft);
@@ -479,13 +483,13 @@ def load_peers():
 # earnings red flags than peers, i.e. worse — so the read line is phrased the other way.
 _BENCH_META = {
     "z":       {"tag": "Altman Z", "short": "Z", "dec": 2, "higher_better": True,
-                "na": "isn’t computed for {name} — banks and insurers lack the working-capital "
-                      "structure the Altman model reads."},
+                "na": "isn’t computed for {name}, because banks and insurers lack the "
+                      "working-capital structure the Altman model reads."},
     "f_score": {"tag": "Piotroski F", "short": "F", "dec": 0, "higher_better": True,
-                "na": "isn’t computed for {name} — its statements are missing inputs the "
+                "na": "isn’t computed for {name}, because its statements are missing inputs the "
                       "Piotroski tests need."},
     "m_score": {"tag": "Beneish M", "short": "M", "dec": 2, "higher_better": False,
-                "na": "isn’t computed for {name} — its statements are missing inputs the "
+                "na": "isn’t computed for {name}, because its statements are missing inputs the "
                       "Beneish indices need."},
 }
 
@@ -519,8 +523,8 @@ def _bench_read(short, pct, higher_better, sector):
                 "right around the sector median" if rank > 45 else
                 "a little less clean than the sector" if rank > 25 else
                 "a less clean earnings reading than most peers")
-    return (f'{short} in the <span class="pct">{_ordinal(pct)} percentile</span> of {sector} '
-            f'&mdash; {tail}.')
+    return (f'{short} in the <span class="pct">{_ordinal(pct)} percentile</span> of {sector}, '
+            f'{tail}.')
 
 
 def bench_bar(metric, value, stat, sector):
@@ -563,8 +567,8 @@ _ZONE_CLASS = {"Safe": "z-green", "Grey": "z-amber", "Distress": "z-red"}
 
 
 def _mfmt(v, dec):
-    """Format a numeric stat, or an em-dash when it's missing."""
-    return f"{v:.{dec}f}" if isinstance(v, (int, float)) else "&mdash;"
+    """Format a numeric stat, or 'N/A' when it's missing."""
+    return f"{v:.{dec}f}" if isinstance(v, (int, float)) else "N/A"
 
 
 def screener_card(rank, item, delay):
@@ -574,7 +578,7 @@ def screener_card(rank, item, delay):
     zone_html = (f'{fmt_z(z)} <em class="{zcls}">{zone}</em>' if z is not None
                  else '<em class="z-gray">N/A</em>')
     f = item["f_score"]
-    f_html = f"{f}<span style='color:var(--faint)'>/9</span>" if f is not None else "&mdash;"
+    f_html = f"{f}<span style='color:var(--faint)'>/9</span>" if f is not None else "N/A"
     m_html = ('<em class="flag">Flag</em>' if item["m_flag"] else '<em class="clean">Clean</em>')
 
     stats = (
@@ -590,7 +594,7 @@ def screener_card(rank, item, delay):
         f'<span class="mrank">{rank:02d}</span>'
         f'<div class="mid"><div class="mname"><b>{item["ticker"]}</b>'
         f'<span class="mco">{item["name"]}</span></div>'
-        f'<div class="msector">{item["sector"] or "—"}</div></div>'
+        f'<div class="msector">{item["sector"] or "Unknown"}</div></div>'
         f'<div class="mfit">fit<b>{item["fit_score"]:.1f}</b></div>'
         f'</div>'
         f'<div class="mstats">{stats}</div>'
@@ -604,7 +608,7 @@ def bench_thin(metric, value, name):
     if value is None:
         msg = f'<b>{cfg["short"]}</b> {cfg["na"].format(name=name)}'
     else:
-        msg = (f'<b>{cfg["short"]}</b> is too thin to benchmark — fewer than 8 peers in this '
+        msg = (f'<b>{cfg["short"]}</b> is too thin to benchmark: fewer than 8 peers in this '
                f'sector report it, so a percentile would be misleading.')
     return f'<div class="thin"><span class="tg">{cfg["tag"]}</span><span>{msg}</span></div>'
 
@@ -619,9 +623,8 @@ st.markdown("""
   <span class="hero-eyebrow">First-pass financial screen</span>
   <h1 class="title">Financial Health <span class="accent">&amp;</span> Red-Flag Screener</h1>
   <p class="tagline">Three published finance models read a company's statements and give one clear
-  read. They score <strong>distress risk</strong> and <strong>fundamental strength</strong>, then
-  check the earnings for <strong>manipulation red flags</strong>. It is the quick first look an
-  analyst runs before digging deeper.</p>
+  read. They score distress risk and fundamental strength, then check the earnings for
+  manipulation red flags. It is the quick first look an analyst runs before digging deeper.</p>
   <div class="fineprint"><span class="lbl">Disclaimer.</span> This is an educational tool, not
   investment advice. These models are probabilistic screens. They are <em>not</em> proof of
   financial distress or fraud, and the results can be incomplete or wrong. Always check against a
@@ -641,9 +644,9 @@ if view == "M&A target screener":
     st.markdown('<div class="seclabel scroll-reveal" style="margin-top:22px"><span class="t">'
                 'M&amp;A target screener</span><span class="ln"></span></div>', unsafe_allow_html=True)
     st.markdown(
-        '<p class="maintro">Companies matching a classic acquisition <b>profile</b>, pulled from '
-        'a committed S&amp;P 500 snapshot — a starting point for diligence, <b>not a prediction '
-        'that any deal will happen</b>. Valuations are screened for quality: it excludes '
+        '<p class="maintro">Companies matching a classic acquisition profile, pulled from '
+        'a committed S&amp;P 500 snapshot. It is a starting point for diligence, not a prediction '
+        'that any deal will happen. Valuations are screened for quality: it excludes '
         'financials the Altman model can’t read (banks/insurers with no Z) and distorted '
         'valuations (negative or near-zero price-to-book).</p>', unsafe_allow_html=True)
 
@@ -652,9 +655,9 @@ if view == "M&A target screener":
                        key="ma_mode")
     _explain = ("<b>Strong business, weak balance sheet.</b> Operationally strong (F&ge;6) but in "
                 "real, non-terminal stress (grey-zone Z), clean earnings, and cheap versus sector "
-                "peers — the classic leveraged-buyout shape."
+                "peers. This is the classic leveraged-buyout shape."
                 if ma_mode == MODES[0] else
-                "<b>Strong, clean operators.</b> Safe-zone Z or high F with clean earnings — the "
+                "<b>Strong, clean operators.</b> Safe-zone Z or high F with clean earnings. The "
                 "kind of healthy business a strategic buyer wants to own.")
     st.markdown(f'<p class="maintro" style="margin-top:8px">{_explain}</p>', unsafe_allow_html=True)
 
@@ -685,7 +688,7 @@ if view == "M&A target screener":
     st.markdown(
         '<div class="scroll-reveal" style="margin-top:26px;color:var(--faint);font-size:.8rem;'
         'line-height:1.6;">Profiles read precomputed Altman Z, Piotroski F and Beneish M from the '
-        'snapshot — no scoring math is re-run here. Educational screen, not investment advice.</div>',
+        'snapshot. No scoring math is re-run here. Educational screen, not investment advice.</div>',
         unsafe_allow_html=True)
     st.stop()
 
@@ -693,7 +696,7 @@ if view == "M&A target screener":
 # Always-visible segmented control in the main content area (no collapsible sidebar,
 # so a control can never disappear with no way to bring it back).
 st.markdown('<div class="navlabel reveal" style="--d:.04s">Data source</div>'
-            '<div class="navhelp reveal" style="--d:.04s">Switch how you load a company — a built-in '
+            '<div class="navhelp reveal" style="--d:.04s">Switch how you load a company: a built-in '
             'sample, a live ticker from Yahoo Finance, or your own numbers.</div>',
             unsafe_allow_html=True)
 SOURCES = ["Sample company", "Live ticker", "Manual entry"]
@@ -783,14 +786,14 @@ summary = {
     "Distressed": "high distress risk",
     "Unknown": "not enough applicable data to make the call",
 }.get(verdict["health"], "mixed signals")
-integ = (", with <strong>earnings-quality red flags</strong>."
+integ = (", with earnings-quality red flags."
          if verdict["integrity"] == "Possible manipulation"
          else ", and the earnings look clean." if verdict["integrity"] == "Clean" else ".")
 
 if source == "Sample company":
     st.markdown(
-        '<div class="samplenote reveal" style="--d:.04s">You\'re viewing <strong>sample data</strong> '
-        '— switch to <strong>Live ticker</strong> above to screen any public company.</div>',
+        '<div class="samplenote reveal" style="--d:.04s">You\'re viewing sample data. '
+        'Switch to <strong>Live ticker</strong> above to screen any public company.</div>',
         unsafe_allow_html=True)
 
 st.markdown(f"""
@@ -832,10 +835,10 @@ with c1:
         g = gauge(altman.z / 6.0, [(30, "--red-trk"), (50, "--amber-trk"), (100, "--green-trk")])
         body = (num(altman.z, 2) + g + f'<div class="pillrow">{pill(altman.zone, zt)}</div>'
                 + legend([("--red", "Distress &lt; 1.81"),
-                          ("--amber", "Grey 1.81&ndash;2.99"),
+                          ("--amber", "Grey 1.81 to 2.99"),
                           ("--green", "Safe &ge; 2.99")]))
     st.markdown(score_card(_ICON_ALTMAN, "Altman Z-Score", "Distress risk",
-                           "Distance from bankruptcy risk &mdash; <b>higher is safer</b>.",
+                           "Distance from bankruptcy risk, where higher is safer.",
                            body, 0.06),
                 unsafe_allow_html=True)
 
@@ -851,11 +854,11 @@ with c2:
         g = gauge(piotroski.score / 9.0, [(28, "--red-trk"), (72, "--amber-trk"), (100, "--green-trk")])
         body = (num(piotroski.score, 0, suffix="/ 9") + g
                 + f'<div class="pillrow">{pill(flbl, ft)}</div>'
-                + legend([("--red", "Weak 0&ndash;2"),
-                          ("--amber", "Moderate 3&ndash;6"),
-                          ("--green", "Strong 7&ndash;9")]))
+                + legend([("--red", "Weak 0 to 2"),
+                          ("--amber", "Moderate 3 to 6"),
+                          ("--green", "Strong 7 to 9")]))
     st.markdown(score_card(_ICON_PIO, "Piotroski F-Score", "Fundamental strength",
-                           "Nine pass/fail fundamentals (0&ndash;9) &mdash; <b>more passed is stronger</b>.",
+                           "Nine pass/fail fundamentals (0 to 9), where more passed is stronger.",
                            body, 0.1),
                 unsafe_allow_html=True)
 
@@ -874,8 +877,8 @@ with c3:
                 + legend([("--green", "Clean below &minus;1.78"),
                           ("--red", "Possible manipulation above &minus;1.78")]))
     st.markdown(score_card(_ICON_BEN, "Beneish M-Score", "Earnings red flags",
-                           "How closely the accounting resembles known earnings manipulators "
-                           "&mdash; <b>lower (more negative) is cleaner</b>.",
+                           "How closely the accounting resembles known earnings manipulators, "
+                           "where lower or more negative is cleaner.",
                            body, 0.14),
                 unsafe_allow_html=True)
 
@@ -937,10 +940,10 @@ if source == "Live ticker":
         shown = sum(1 for m in ("z", "f_score", "m_score")
                     if company_vals[m] is not None and not stats[m].thin)
         intro = (f'Where <b>{meta["name"]}</b> lands against its <b>{sector}</b> peers in the '
-                 f'S&amp;P 500 snapshot — using the median and the middle 50% (p25–p75), not the '
+                 f'S&amp;P 500 snapshot, using the median and the middle 50% (p25 to p75), not the '
                  f'average, so one outlier can’t skew the picture.') if shown else (
                  f'<b>{meta["name"]}</b> sits in <b>{sector}</b>, but none of the three scores can '
-                 f'be benchmarked here — see why below.')
+                 f'be benchmarked here. See why below.')
 
         st.markdown(
             f'<div class="seclabel scroll-reveal"><span class="t">How {meta["name"]} stacks up '
@@ -1002,7 +1005,7 @@ with st.expander("What these models are (and what they aren't)"):
   manipulation. Cornell students used it to flag Enron before it collapsed.
 
 These are screens, not verdicts. Treat them as a starting point for deeper work, and as a teaching
-tool. Not investment advice. The Altman and Beneish models are built for **non-financial**
+tool. Not investment advice. The Altman and Beneish models are built for non-financial
 companies and don't fit banks or insurers.
     """)
 

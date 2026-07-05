@@ -60,12 +60,17 @@ TAGS = {
     "receivables": ["AccountsReceivableNetCurrent", "ReceivablesNetCurrent"],
     "current_assets": ["AssetsCurrent"],
     "current_liabilities": ["LiabilitiesCurrent"],
-    "ppe": ["PropertyPlantAndEquipmentNet"],
+    "ppe": ["PropertyPlantAndEquipmentNet",
+            "PropertyPlantAndEquipmentAndFinanceLeaseRightOfUseAssetAfterAccumulatedDepreciationAndAmortization"],
     "total_assets": ["Assets"],
     "long_term_debt": ["LongTermDebtNoncurrent", "LongTermDebt"],
     "retained_earnings": ["RetainedEarningsAccumulatedDeficit"],
     "total_liabilities": ["Liabilities"],
 }
+# Some filers (Intel included) never tag "Liabilities"; it is derived per side as
+# total assets minus stockholders' equity, the same fallback data.fetch_live uses.
+EQUITY_TAGS = ["StockholdersEquity",
+               "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"]
 FLOW_ITEMS = ("sales", "cogs", "depreciation", "sga", "net_income", "cfo", "ebit")
 INSTANT_ITEMS = tuple(k for k in TAGS if k not in FLOW_ITEMS)
 
@@ -123,18 +128,24 @@ def fetch_prices() -> dict:
 # ----------------------------------------------------------------------------
 # EDGAR fact extraction
 # ----------------------------------------------------------------------------
-def _facts_for(facts: dict, item: str):
-    """All USD facts for the first tag that exists, as a list of dicts, plus the tag."""
+def _facts_for(facts: dict, item: str, tags=None):
+    """
+    All USD facts across the item's candidate tags, MERGED (a filer can switch tags
+    over time, e.g. Intel's PP&E). The indexers keep the earliest-filed fact per
+    period, so overlaps resolve deterministically. Returns (joined tag names, facts).
+    """
     gaap = facts.get("facts", {}).get("us-gaap", {})
-    for tag in TAGS[item]:
+    used, out = [], []
+    for tag in (tags or TAGS[item]):
         node = gaap.get(tag)
         if not node:
             continue
         units = node.get("units", {})
         vals = units.get("USD") or next(iter(units.values()), [])
         if vals:
-            return tag, vals
-    return None, []
+            used.append(tag)
+            out.extend(vals)
+    return ("|".join(used) or None), out
 
 
 def _days(a: str, b: str) -> int:
@@ -191,6 +202,9 @@ class FactBook:
             tag, vals = _facts_for(facts, item)
             self.tag[item] = tag
             self.inst[item] = _index_instants(vals)
+        # equity instants, for deriving total liabilities when "Liabilities" is untagged
+        _, eq_vals = _facts_for(facts, "total_liabilities", tags=EQUITY_TAGS)
+        self.equity = _index_instants(eq_vals)
         # shares outstanding from the dei cover facts: {filed: val}
         dei = facts.get("facts", {}).get("dei", {}).get(
             "EntityCommonStockSharesOutstanding", {})
@@ -245,6 +259,13 @@ class FactBook:
         if f is None:
             near = _near(end, self.inst[item].keys(), tol=7)
             f = self.inst[item].get(near) if near else None
+        return f
+
+    def equity_at(self, end: str):
+        f = self.equity.get(end)
+        if f is None:
+            near = _near(end, self.equity.keys(), tol=7)
+            f = self.equity.get(near) if near else None
         return f
 
     def shares_asof(self, filed: str):
@@ -314,6 +335,16 @@ def build_filings(book: FactBook, sources: list):
                         "value": val, "tag": tag or "", "filed": filed or "",
                         "source": note or "EDGAR companyfacts"})
 
+    def derive_tl(d, pe, period, form, side):
+        """Total liabilities = assets - equity when the filer never tags Liabilities."""
+        if d.get("total_liabilities") is None and pe and d.get("total_assets") is not None:
+            eq = book.equity_at(pe)
+            if eq:
+                d["total_liabilities"] = d["total_assets"] - eq["val"]
+                rec(period, form, side, "total_liabilities", d["total_liabilities"],
+                    "derived: Assets - StockholdersEquity", eq["filed"],
+                    "derived from EDGAR equity")
+
     def fallback(item, period_end):
         nonlocal yf_fb
         if item not in FLOW_ITEMS:
@@ -345,6 +376,8 @@ def build_filings(book: FactBook, sources: list):
                 (curr if side == "curr" else prior)[item] = val
                 rec(end, "10-K", side, item, val, book.tag[item],
                     f["filed"] if f else "", "" if f else "missing")
+        derive_tl(curr, end, end, "10-K", "curr")
+        derive_tl(prior, prior_end, end, "10-K", "prior")
         curr["shares"] = prior["shares"] = book.shares_asof(filed)
         rec(end, "10-K", "curr", "shares", curr["shares"],
             "dei:EntityCommonStockSharesOutstanding", filed)
@@ -377,6 +410,8 @@ def build_filings(book: FactBook, sources: list):
                 (curr if side == "curr" else prior)[item] = val
                 rec(q, "10-Q", side, item, val, book.tag[item],
                     f["filed"] if f else "", "" if f else "missing")
+        derive_tl(curr, q, q, "10-Q", "curr")
+        derive_tl(prior, prior_q, q, "10-Q", "prior")
         curr["shares"] = prior["shares"] = book.shares_asof(filed)
         rec(q, "10-Q", "curr", "shares", curr["shares"],
             "dei:EntityCommonStockSharesOutstanding", filed)

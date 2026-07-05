@@ -17,3 +17,4 @@ SPEC-PORTFOLIO-UPLOAD.md
 SPEC-LANDING-PAGE.md
 SPEC-BACKTEST-INTEL.md
 landing-page/
+data/backtest_cache/

@@ -16,6 +16,7 @@ from data import PRESETS, blank_payload, fetch_live, run_models, LINE_ITEMS
 from commentary import explain
 from benchmark import load_universe, sector_stats, position
 from screener import value_targets, strategic_targets, sectors as snapshot_sectors, fmt_z
+from portfolio import parse_holdings, score_holdings, rank_portfolio, EXAMPLE_CSV
 
 st.set_page_config(page_title="Financial Health & Red-Flag Screener",
                    layout="wide", initial_sidebar_state="collapsed")
@@ -675,8 +676,146 @@ st.markdown("""
 # Two views: the original single-company flow (DEFAULT — unchanged below) and the new
 # sector-wide M&A target screener. Styled as the same segmented control as Data source.
 st.markdown('<div class="navlabel reveal" style="--d:.03s">View</div>', unsafe_allow_html=True)
-VIEWS = ["Screen a company", "M&A target screener"]
+VIEWS = ["Screen a company", "M&A target screener", "Portfolio"]
 view = st.radio("View", VIEWS, horizontal=True, label_visibility="collapsed", key="view")
+
+# --------------------------- PORTFOLIO -------------------------------------
+# Thin display wrapper only: all parsing/scoring/ranking logic lives in portfolio.py
+# (pure, no Streamlit, no network - the live fetch is injected below, cached).
+if view == "Portfolio":
+
+    @st.cache_data(show_spinner=False)
+    def _cached_fetch(ticker: str) -> dict:
+        """Cache live fetches so re-uploading the same file doesn't refetch."""
+        return fetch_live(ticker)
+
+    st.markdown('<div class="seclabel scroll-reveal" style="margin-top:22px"><span class="t">'
+                'Portfolio check</span><span class="ln"></span></div>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="maintro">Upload the positions CSV your broker exports (Robinhood, Fidelity, '
+        'Schwab, and similar all work) and every stock you own gets scored by the same three '
+        'models, then ranked <b>weakest first</b>. The question this answers: which of your '
+        'holdings deserve a second look.</p>'
+        '<p class="manote">Options, money market funds, and footer junk in the export are '
+        'skipped automatically. Nothing is stored and no account is linked; this reads only '
+        'the file you upload.</p>',
+        unsafe_allow_html=True)
+
+    up_col, btn_col = st.columns([2, 1])
+    with up_col:
+        uploaded = st.file_uploader("Upload holdings CSV", type=["csv", "txt"],
+                                    label_visibility="collapsed")
+    with btn_col:
+        if st.button("Load example portfolio"):
+            st.session_state["pf_text"] = EXAMPLE_CSV
+            st.session_state["pf_source"] = "example"
+    if uploaded is not None:
+        st.session_state["pf_text"] = uploaded.getvalue().decode("utf-8", errors="replace")
+        st.session_state["pf_source"] = uploaded.name
+
+    pf_text = st.session_state.get("pf_text")
+    if not pf_text:
+        st.markdown('<div class="note empty reveal" style="--d:.05s">Upload your broker\'s '
+                    'positions export, or load the example portfolio to see how it works.</div>',
+                    unsafe_allow_html=True)
+        st.stop()
+
+    if st.session_state.get("pf_source") == "example":
+        st.markdown('<div class="samplenote reveal" style="--d:.04s">You\'re viewing the '
+                    '<strong>example portfolio</strong>. Upload your own export above to score '
+                    'your real holdings.</div>', unsafe_allow_html=True)
+
+    try:
+        parsed = parse_holdings(pf_text)
+    except ValueError as e:
+        st.warning(str(e))
+        st.stop()
+
+    if parsed["note"]:
+        st.markdown(f'<div class="note reveal" style="--d:.05s">{parsed["note"]}</div>',
+                    unsafe_allow_html=True)
+    if not parsed["holdings"]:
+        st.markdown('<div class="note empty reveal" style="--d:.05s">No equity positions were '
+                    'found in that file. Options, funds, and cash rows are skipped by design; '
+                    'check that the export has a Symbol or Ticker column with stock symbols.'
+                    '</div>', unsafe_allow_html=True)
+        st.stop()
+
+    with st.spinner(f"Scoring {len(parsed['holdings'])} holdings..."):
+        _scored = score_holdings(parsed["holdings"], load_peers(), _cached_fetch, run_models)
+    roll = rank_portfolio(_scored)
+
+    # ---- summary cards: counts by verdict + flagged count ----
+    _c = roll["counts"]
+    _sum_pills = (
+        pill(f'{_c["Distressed"]} distressed', "red" if _c["Distressed"] else "gray")
+        + pill(f'{roll["n_flagged"]} earnings-flagged', "red" if roll["n_flagged"] else "gray", ring=True)
+        + pill(f'{_c["Watch"]} on watch', "amber" if _c["Watch"] else "gray")
+        + pill(f'{_c["Healthy"]} healthy', "green" if _c["Healthy"] else "gray")
+        + (pill(f'{roll["n_unscored"]} unscored', "gray") if roll["n_unscored"] else "")
+    )
+    _n = len(roll["ranked"])
+    if _c["Distressed"] or roll["n_flagged"]:
+        _read = ("The names at the top of the list carry real red flags and are worth a "
+                 "closer look at the primary filings.")
+    elif _c["Watch"]:
+        _read = "No hard red flags, but the watch-list names show mixed signals worth tracking."
+    else:
+        _read = "Every scored holding reads healthy under all three models."
+    st.markdown(
+        f'<div class="card verdict v-{"red" if (_c["Distressed"] or roll["n_flagged"]) else "amber" if _c["Watch"] else "green"} reveal" style="--d:.05s">'
+        f'<div class="vleft"><p class="vname">{_n} holding{"s" if _n != 1 else ""} scored</p>'
+        f'<div class="pillrow">{_sum_pills}</div></div>'
+        f'<div class="vright vcall"><span class="lead">The portfolio in one line</span>{_read}</div>'
+        f'</div>', unsafe_allow_html=True)
+
+    # ---- ranked list, weakest first ----
+    st.markdown('<p class="macount">Ranked <b>weakest first</b>: distressed, then '
+                'earnings-flagged, then watch, then healthy.</p>', unsafe_allow_html=True)
+    for i, item in enumerate(roll["ranked"]):
+        z, zone = item["z"], item["zone"]
+        zcls = _ZONE_CLASS.get(zone, "z-gray")
+        zone_html = (f'{fmt_z(z)} <em class="{zcls}">{zone}</em>' if z is not None
+                     else '<em class="z-gray">N/A</em>')
+        f = item["f_score"]
+        f_html = f"{f}<span style='color:var(--faint)'>/9</span>" if f is not None else "N/A"
+        m_html = ('<em class="flag">Flag</em>' if item["m_flag"]
+                  else '<em class="clean">Clean</em>' if item["m_score"] is not None
+                  else '<em class="z-gray">N/A</em>')
+        shares = (f'<span class="mstat"><i>Shares</i> {item["weight"]:g}</span>'
+                  if item["weight"] is not None else "")
+        health = item["verdict"]["health"]
+        src = ("S&P 500 snapshot" if item["source"] == "snapshot" else "live Yahoo Finance data")
+        st.markdown(
+            f'<div class="card mcard reveal" style="--d:{min(i * 0.04, 0.4):.2f}s">'
+            f'<div class="mtop"><span class="mrank">{i + 1:02d}</span>'
+            f'<div class="mid"><div class="mname"><b>{item["ticker"]}</b>'
+            f'<span class="mco">{item["name"]}</span></div>'
+            f'<div class="msector">{item["sector"] or "Unknown sector"}</div></div>'
+            f'{pill(health, HEALTH_TONE.get(health, "gray"))}'
+            f'</div>'
+            f'<div class="mstats">'
+            f'<span class="mstat"><i>Z</i> {zone_html}</span>'
+            f'<span class="mstat"><i>F</i> {f_html}</span>'
+            f'<span class="mstat"><i>M</i> {m_html}</span>'
+            f'{shares}'
+            f'</div>'
+            f'<p class="mwhy"><b>Weakest signal:</b> {item["worst_signal"]} '
+            f'<span style="color:var(--faint)">Scored from {src}.</span></p>'
+            f'</div>', unsafe_allow_html=True)
+
+    # ---- unscored holdings, honestly ----
+    if roll["unscored"]:
+        with st.expander(f"{roll['n_unscored']} holding{'s' if roll['n_unscored'] != 1 else ''} "
+                         "couldn't be scored"):
+            for item in roll["unscored"]:
+                st.markdown(f"- **{item['ticker']}:** {item['unscored_reason']}")
+
+    st.markdown(
+        '<div class="scroll-reveal" style="margin-top:26px;color:var(--faint);font-size:.8rem;'
+        'line-height:1.6;">Scores are computed from company filings. Educational screen, not '
+        'investment advice.</div>', unsafe_allow_html=True)
+    st.stop()
 
 # --------------------------- M&A TARGET SCREENER ---------------------------
 if view == "M&A target screener":

@@ -2,3 +2,8 @@ streamlit>=1.36
 yfinance>=0.2.40
 pandas>=2.0
 openpyxl
+requests>=2.31
+fastapi>=0.110
+uvicorn>=0.29
+python-multipart>=0.0.9
+pydantic>=2.0

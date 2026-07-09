@@ -18,4 +18,6 @@ SPEC-LANDING-PAGE.md
 SPEC-BACKTEST-INTEL.md
 landing-page/
 data/backtest_cache/
+data/live_cache/
+data/history/
 BACKTEST-INTEL-NARRATIVE.md

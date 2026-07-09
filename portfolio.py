@@ -163,13 +163,15 @@ def _verdict_from_scores(z, zone, f, m, m_flag) -> dict:
     return overall_verdict(altman, pio, ben)
 
 
-def _result(ticker, name, sector, z, zone, f, m, m_flag, source, weight) -> dict:
+def _result(ticker, name, sector, z, zone, f, m, m_flag, source, weight,
+            data_source=None) -> dict:
     flag = _is_flagged(m_flag) if m is not None else False
     verdict = _verdict_from_scores(z, zone, f, m, m_flag)
     return {
         "ticker": ticker, "name": name, "sector": sector,
         "z": z, "zone": zone, "f_score": f, "m_score": m, "m_flag": flag,
         "verdict": verdict, "source": source, "weight": weight,
+        "data_source": data_source or {"source": None, "as_of": None},
         "worst_signal": _worst_signal(z, zone, f, flag),
         "unscored_reason": None,
     }
@@ -181,6 +183,7 @@ def _unscored(holding: dict, reason: str) -> dict:
         "z": None, "zone": None, "f_score": None, "m_score": None, "m_flag": False,
         "verdict": {"health": "Unknown", "integrity": "Not enough data"},
         "source": "unscored", "weight": holding.get("shares"),
+        "data_source": {"source": None, "as_of": None},
         "worst_signal": "No score could be computed for this holding.",
         "unscored_reason": reason,
     }
@@ -194,37 +197,53 @@ def score_holdings(holdings: List[dict], snapshot_rows: List[dict],
     screen uses), wrapped so an unknown or failing ticker degrades to an "unscored"
     row carrying the reason, never an exception.
     """
+    from report import build_report, portfolio_row   # the one contract both paths speak
+
     by_ticker = {str(r.get("tr", "")).strip().upper(): r for r in snapshot_rows}
     out: List[dict] = []
     for h in holdings:
         t = h["ticker"]
         snap = by_ticker.get(t)
         if snap is not None:
-            f = snap.get("f_score")
+            # Fast path: precomputed scores, no network. They are as fresh as the
+            # snapshot build, which is why the row carries that date. A snapshot row and
+            # a live drill-down of the same ticker can legitimately differ; the UI shows
+            # the as-of so the difference is visible rather than silent.
+            #
+            # Financials (banks, insurers) were left blank when the snapshot was built,
+            # the same reason the live path can't score them. A blank snapshot row must
+            # degrade to unscored here too, or it silently reports a fake "Unknown"
+            # verdict instead of the honest reason, and sorts alongside real Healthy
+            # holdings in rank_portfolio instead of its own unscored bucket.
+            z, f, m = snap.get("z"), snap.get("f_score"), snap.get("m_score")
+            if z is None and f is None and m is None:
+                out.append(_unscored(
+                    h, "Looks like a bank or insurer: these models can't read a "
+                       "financial institution's statements."))
+                continue
             out.append(_result(
                 t, snap.get("name") or t, snap.get("sector"),
-                snap.get("z"), snap.get("zone") or None,
+                z, snap.get("zone") or None,
                 int(f) if isinstance(f, (int, float)) else None,
-                snap.get("m_score"), snap.get("m_flag"),
-                "snapshot", h.get("shares")))
+                m, snap.get("m_flag"),
+                "snapshot", h.get("shares"),
+                data_source={"source": "S&P 500 snapshot",
+                             "as_of": snap.get("as_of_date")}))
             continue
         try:
+            # Live path: build the SAME report the company drill-down renders, then
+            # project it to a row. One contract, so the row and the detail cannot disagree.
             payload = fetch_fn(t)
-            altman, pio, ben, _verdict, _notes = run_models_fn(payload)
-            if altman is None and pio is None and ben is None:
+            report = build_report(payload, run_models_fn=run_models_fn)
+            scores = report["scores"]
+            if not any(scores[m]["applicable"] for m in ("altman", "piotroski", "beneish")):
                 reason = ("Looks like a bank or insurer: these models can't read a "
                           "financial institution's statements."
-                          if payload.get("meta", {}).get("is_financial")
+                          if report["company"]["is_financial"]
                           else "Not enough statement data to run any of the three models.")
                 out.append(_unscored(h, reason))
                 continue
-            out.append(_result(
-                t, payload.get("meta", {}).get("name") or t,
-                payload.get("meta", {}).get("sector"),
-                altman.z if altman else None, altman.zone if altman else None,
-                pio.score if pio else None,
-                ben.m if ben else None, ben.flag if ben else False,
-                "live", h.get("shares")))
+            out.append(portfolio_row(report, shares=h.get("shares"), source="live"))
         except Exception as e:  # noqa: BLE001 - degrade, never crash the portfolio
             out.append(_unscored(h, str(e) or "Couldn't fetch data for this symbol."))
     return out
@@ -251,11 +270,71 @@ def _rank_key(r: dict):
             f if f is not None else float("inf"))
 
 
-def rank_portfolio(scored: List[dict]) -> dict:
+# A single sector at or above this share of the portfolio is worth naming out loud.
+CONCENTRATION_ALERT_PCT = 40.0
+
+
+def sector_concentration(scored: List[dict],
+                         value_by_ticker: Optional[dict] = None) -> dict:
+    """
+    How the portfolio is spread across sectors, weakest-diversification answer first.
+    This is the "am I exposed without realizing it" read: a portfolio of nine healthy
+    holdings that are all Technology is not a diversified portfolio.
+
+    Weighting is honest about what it knows. Pass value_by_ticker {ticker: market value}
+    and the read is value-weighted. Without it, every position counts once and the basis
+    says so, rather than silently pretending equal weight is dollar weight.
+
+    Unscored holdings still count toward concentration (you own them), bucketed under
+    an "Unknown" sector when we could not resolve one.
+    """
+    if not scored:
+        return {"basis": "position count", "sectors": [], "top_sector": None,
+                "top_pct": None, "concentrated": False,
+                "headline": "No holdings to analyze."}
+
+    have_values = bool(value_by_ticker) and all(
+        value_by_ticker.get(r.get("ticker")) for r in scored)
+    basis = "market value" if have_values else "position count"
+
+    totals: dict = {}
+    counts: dict = {}
+    for r in scored:
+        sector = r.get("sector") or "Unknown"
+        w = float(value_by_ticker[r["ticker"]]) if have_values else 1.0
+        totals[sector] = totals.get(sector, 0.0) + w
+        counts[sector] = counts.get(sector, 0) + 1
+
+    grand = sum(totals.values()) or 1.0
+    sectors = sorted(
+        ({"sector": s, "n": counts[s], "weight": totals[s],
+          "pct": round(100.0 * totals[s] / grand, 1)} for s in totals),
+        key=lambda d: (-d["pct"], d["sector"]))
+
+    top = sectors[0]
+    concentrated = top["pct"] >= CONCENTRATION_ALERT_PCT and top["sector"] != "Unknown"
+    if concentrated:
+        headline = (f"{top['pct']:.0f}% of this portfolio sits in {top['sector']}, "
+                    f"by {basis}. A sector shock hits most of it at once.")
+    elif len(sectors) == 1:
+        headline = f"Every holding is in one sector ({top['sector']}), by {basis}."
+    else:
+        headline = (f"Spread across {len(sectors)} sectors, with {top['sector']} the "
+                    f"largest at {top['pct']:.0f}% by {basis}.")
+
+    return {"basis": basis, "sectors": sectors, "top_sector": top["sector"],
+            "top_pct": top["pct"], "concentrated": concentrated, "headline": headline}
+
+
+def rank_portfolio(scored: List[dict],
+                   value_by_ticker: Optional[dict] = None) -> dict:
     """
     Sort scored holdings weakest first (unscored rows listed separately, last) and
     roll the portfolio up: counts by health verdict, Beneish-flag count, the three
-    weakest holdings, and the unscored count.
+    weakest holdings, the unscored count, and the sector-concentration read.
+
+    When rows carry a `delta` block (see history.diff_portfolio), the rollup also
+    summarises what changed since the last check, which is the monitoring loop's payoff.
     """
     ranked = sorted((r for r in scored if r["source"] != "unscored"), key=_rank_key)
     unscored = [r for r in scored if r["source"] == "unscored"]
@@ -267,14 +346,20 @@ def rank_portfolio(scored: List[dict]) -> dict:
             counts[h] += 1
     n_flagged = sum(1 for r in ranked if r.get("m_flag"))
 
-    return {
+    rollup = {
         "ranked": ranked,
         "unscored": unscored,
         "counts": counts,
         "n_flagged": n_flagged,
         "weakest": ranked[:3],
         "n_unscored": len(unscored),
+        "concentration": sector_concentration(scored, value_by_ticker),
     }
+
+    if any("delta" in r for r in scored):
+        from history import changed_holdings
+        rollup["changes"] = changed_holdings(ranked)
+    return rollup
 
 
 # ----------------------------------------------------------------------------

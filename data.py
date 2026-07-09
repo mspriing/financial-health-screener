@@ -1,15 +1,22 @@
 """
-data.py — Data layer. Three ways to feed the models:
+data.py — Data layer. Ways to feed the models:
 
-  1. fetch_live(ticker)  — pull real statements from Yahoo Finance via yfinance
-                           (works wherever the app has internet, e.g. Streamlit Cloud).
+  1. fetch_live(ticker)  — the live pipeline. Fundamentals come from SEC EDGAR (the
+                           official free filings source), prices from Finnhub's free
+                           tier, and yfinance is kept only as a fallback behind both.
+                           See fetch_live() for the layering and provenance.
   2. PRESETS             — three illustrative sample companies (clearly labeled as
                            sample data) so the app always demos cleanly, even offline.
   3. manual entry        — the UI lets a user type the line items directly.
 
-All three produce the same `payload` shape, which run_models() turns into scores.
-Each model degrades independently: a company missing the inputs for one model still
-gets scored on the others.
+All produce the same `payload` shape, which run_models() turns into scores. Each
+model degrades independently: a company missing the inputs for one model still gets
+scored on the others.
+
+The live pipeline is split into pure adapter modules (edgar.py, prices.py, livecache.py)
+with no Streamlit imports, so the whole data layer moves into a FastAPI service verbatim
+at migration time. This module orchestrates them and stamps data provenance (source +
+as-of) onto every payload so the UI can always show where a number came from.
 """
 from __future__ import annotations
 from models import altman_z, beneish_m, piotroski_f, overall_verdict
@@ -126,7 +133,7 @@ def blank_payload() -> dict:
 
 
 # ----------------------------------------------------------------------------
-# Live data via yfinance
+# Fallback fundamentals via yfinance (behind the EDGAR-first orchestrator below)
 # ----------------------------------------------------------------------------
 def _row(df, *labels):
     """Return [current, prior] for the first matching row label, else [None, None]."""
@@ -149,12 +156,16 @@ INDEX_FUND_HINTS = {
 }
 
 
-def fetch_live(ticker: str) -> dict:
+def fetch_yfinance(ticker: str) -> dict:
     """
     Pull the two most recent annual statements from Yahoo Finance. Missing fields
     come back as None and the affected model degrades to N/A (rather than crashing).
     Raises RuntimeError with a plain-English explanation when the symbol isn't a
     single company we can analyze (an index/fund, a private or unknown ticker, etc.).
+
+    This is the FALLBACK fundamentals source. fetch_live() calls EDGAR first and only
+    lands here when EDGAR can't serve the ticker, so the app keeps working out of the
+    box while the honest, official data path (EDGAR) is preferred whenever available.
     """
     import yfinance as yf
 
@@ -283,7 +294,74 @@ def fetch_live(ticker: str) -> dict:
         "meta": {"name": name, "ticker": ticker.upper(),
                  "source": "Yahoo Finance (yfinance)",
                  "period_curr": "Latest annual", "period_prior": "Prior annual",
-                 "is_financial": is_financial, "sector": sector},
+                 "is_financial": is_financial, "sector": sector,
+                 "fundamentals_source": "Yahoo Finance (yfinance)",
+                 "fundamentals_as_of": "Latest annual",
+                 "fundamentals_fetched_at": None},
         "market_value_equity": float(mve) if mve else 0.0,
         "curr": curr, "prior": prior,
     }
+
+
+# ----------------------------------------------------------------------------
+# Live pipeline orchestrator: EDGAR fundamentals + Finnhub price, yfinance fallback
+# ----------------------------------------------------------------------------
+def fetch_live(ticker: str) -> dict:
+    """
+    The one entry point the app calls for a live company. It layers the sources so the
+    product runs on official, honest data whenever possible and never breaks when a
+    layer is unavailable:
+
+      Fundamentals:  SEC EDGAR (companyfacts)  ->  yfinance fallback
+      Price / MVE:   Finnhub free tier         ->  yfinance fallback
+
+    Returns the same payload shape as before (meta / market_value_equity / curr /
+    prior), plus a meta["provenance"] block recording the source and as-of of both the
+    fundamentals and the price, so the UI can show exactly where every number came from.
+
+    Raises RuntimeError with a plain-English message only when NEITHER fundamentals
+    source can analyze the symbol (an index/fund, private, or unknown ticker), reusing
+    the friendly yfinance messages.
+    """
+    raw = ticker.strip()
+
+    # --- 1. Fundamentals: EDGAR first ---
+    payload = None
+    try:
+        import edgar
+        payload = edgar.fetch_edgar(raw)
+    except Exception:
+        payload = None
+
+    if payload is None:
+        # yfinance fallback also produces the friendly index/unknown-ticker errors.
+        payload = fetch_yfinance(raw)
+
+    meta = payload["meta"]
+
+    # --- 2. Price / market value of equity: Finnhub first, yfinance fallback ---
+    price_info = None
+    try:
+        import prices
+        price_info = prices.fetch_price(raw)
+    except Exception:
+        price_info = None
+
+    if price_info and price_info.get("market_cap"):
+        payload["market_value_equity"] = float(price_info["market_cap"])
+
+    # --- 3. Provenance stamped on meta (source + as-of for fundamentals and price) ---
+    meta["source"] = meta.get("fundamentals_source", meta.get("source"))
+    meta["provenance"] = {
+        "fundamentals": {
+            "source": meta.get("fundamentals_source"),
+            "as_of": meta.get("fundamentals_as_of"),
+            "fetched_at": meta.get("fundamentals_fetched_at"),
+        },
+        "price": {
+            "source": (price_info or {}).get("source"),
+            "as_of": (price_info or {}).get("as_of"),
+            "value": (price_info or {}).get("market_cap"),
+        } if price_info else {"source": None, "as_of": None, "value": None},
+    }
+    return payload

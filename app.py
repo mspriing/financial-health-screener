@@ -12,11 +12,23 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
+import os
+
 from data import PRESETS, blank_payload, fetch_live, run_models, LINE_ITEMS
 from commentary import explain
 from benchmark import load_universe, sector_stats, position
 from screener import value_targets, strategic_targets, sectors as snapshot_sectors, fmt_z
 from portfolio import parse_holdings, score_holdings, rank_portfolio, EXAMPLE_CSV
+
+# Bridge the Finnhub key from Streamlit secrets into the environment, so the pure data
+# layer (prices.py) can read it without importing Streamlit. This is the canonical path
+# on Streamlit Community Cloud, where secrets are set in the dashboard. Safe no-op when
+# no secret is configured: the price layer then falls back to yfinance.
+try:
+    if "FINNHUB_API_KEY" in st.secrets and not os.environ.get("FINNHUB_API_KEY"):
+        os.environ["FINNHUB_API_KEY"] = str(st.secrets["FINNHUB_API_KEY"])
+except Exception:
+    pass
 
 st.set_page_config(page_title="Financial Health & Red-Flag Screener",
                    layout="wide", initial_sidebar_state="collapsed")

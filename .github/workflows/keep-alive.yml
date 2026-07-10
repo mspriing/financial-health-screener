@@ -10,4 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping /health
-        run: curl -sf --max-time 30 https://financial-health-screener-api.onrender.com/health
+        run: >
+          curl -sf
+          --retry 5
+          --retry-all-errors
+          --retry-delay 20
+          --max-time 90
+          https://financial-health-screener-api.onrender.com/health

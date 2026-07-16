@@ -20,7 +20,8 @@ import io
 import re
 from typing import Callable, List, Optional
 
-from models import (AltmanResult, BeneishResult, PiotroskiResult, overall_verdict)
+from models import (AltmanResult, BeneishResult, PiotroskiResult, overall_verdict,
+                    spring_score)
 from screener import fmt_z
 
 # Live fetches are rate-limited upstream (Yahoo), so a huge export is capped and the
@@ -167,8 +168,16 @@ def _result(ticker, name, sector, z, zone, f, m, m_flag, source, weight,
             data_source=None) -> dict:
     flag = _is_flagged(m_flag) if m is not None else False
     verdict = _verdict_from_scores(z, zone, f, m, m_flag)
+    # Snapshot rows carry only the three stored model scores, no line items, so the
+    # composite reweights over the model backbone alone (spring_score's design).
+    try:
+        spring = spring_score(z=z, f_score=f, m_score=m)
+    except ValueError:
+        spring = None
     return {
         "ticker": ticker, "name": name, "sector": sector,
+        "spring_score": spring.score if spring else None,
+        "spring_tier": spring.tier if spring else None,
         "z": z, "zone": zone, "f_score": f, "m_score": m, "m_flag": flag,
         "verdict": verdict, "source": source, "weight": weight,
         "data_source": data_source or {"source": None, "as_of": None},
@@ -180,6 +189,7 @@ def _result(ticker, name, sector, z, zone, f, m, m_flag, source, weight,
 def _unscored(holding: dict, reason: str) -> dict:
     return {
         "ticker": holding["ticker"], "name": holding["ticker"], "sector": None,
+        "spring_score": None, "spring_tier": None,
         "z": None, "zone": None, "f_score": None, "m_score": None, "m_flag": False,
         "verdict": {"health": "Unknown", "integrity": "Not enough data"},
         "source": "unscored", "weight": holding.get("shares"),

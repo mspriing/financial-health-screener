@@ -8,6 +8,12 @@ score a company on health, distress risk, and earnings-manipulation red flags:
   * Beneish M-Score     — earnings-manipulation detection (Beneish, FAJ 1999)
   * Piotroski F-Score   — fundamental financial strength (Piotroski, 2000)
 
+plus the composite that rolls them up for the product's headline:
+
+  * Spring Score        — 0-100 weighted composite of the three models above plus
+                          three quality ingredients (accrual quality per Sloan 1996,
+                          gross-margin trend, leverage trend). See spring_score().
+
 Every function here is PURE: it takes explicit numeric inputs and returns numbers.
 No network, no globals. That makes the math unit-testable (see tests/test_models.py)
 and lets the data layer (data.py) source the inputs from anywhere — live yfinance,
@@ -223,6 +229,154 @@ def piotroski_f(curr: dict, prior: dict) -> PiotroskiResult:
     s["9. Asset turnover improved"] = int(at_t is not None and at_p is not None and at_t > at_p)
 
     return PiotroskiResult(score=int(sum(s.values())), signals=s)
+
+
+# ----------------------------------------------------------------------------
+# 4. SPRING SCORE  (composite 0-100, weighted across six ingredients)
+# ----------------------------------------------------------------------------
+# Weights sum to 100. The three published models are the backbone (60); the three
+# quality ingredients computed from the same line items are the rest (40). Analyst
+# consensus direction is a deliberate OPEN SLOT: the weights below get reviewed with
+# Prof. Simin before it joins, at which point it takes weight from this table rather
+# than being bolted on. Until then a missing ingredient simply reweights the rest
+# (see spring_score), the same honest degradation the three models already practice.
+SPRING_WEIGHTS = {
+    "altman": 25,           # distress risk
+    "piotroski": 20,        # fundamental strength
+    "beneish": 15,          # earnings-manipulation risk
+    "accruals": 10,         # cash backing of earnings (Sloan, 1996 direction)
+    "margin_trend": 15,     # gross margin, year over year
+    "leverage_trend": 15,   # long-term debt / total assets, year over year
+}
+
+# A composite over less than this much weight is a guess, not a score.
+SPRING_MIN_WEIGHT = 40
+
+SPRING_TIERS = (           # lower bound (inclusive) -> tier name
+    (85, "Excellent"),
+    (70, "Strong"),
+    (50, "Fair"),
+    (30, "Weak"),
+    (0, "Fragile"),
+)
+
+# Anchor points mapping each raw ingredient onto 0-100. Every anchor is either the
+# model's own published cutoff (Altman 1.81/2.99, Beneish -1.78) or a symmetric
+# +/- band around neutral for the trend ingredients. Linear between anchors,
+# clamped outside them.
+_SPRING_ANCHORS = {
+    # Altman Z: distress cutoff 1.81 -> 40, safe cutoff 2.99 -> 70.
+    "altman": [(0.0, 0.0), (1.81, 40.0), (2.99, 70.0), (6.0, 100.0)],
+    # Beneish M: lower is better. -1.78 is the flag threshold -> 50.
+    "beneish": [(-3.0, 100.0), (-1.78, 50.0), (0.0, 0.0)],
+    # Accruals (NI - CFO) / TA: negative = cash-backed earnings = good.
+    "accruals": [(-0.10, 100.0), (0.0, 50.0), (0.10, 0.0)],
+    # Gross-margin change, in fraction points (+0.05 = margin up 5pp).
+    "margin_trend": [(-0.05, 0.0), (0.0, 50.0), (0.05, 100.0)],
+    # Change in long-term debt / total assets: paying down debt = good.
+    "leverage_trend": [(-0.05, 100.0), (0.0, 50.0), (0.05, 0.0)],
+}
+
+
+def _piecewise(x: float, anchors) -> float:
+    """Linear interpolation through (x, y) anchor points, clamped at the ends."""
+    if x <= anchors[0][0]:
+        return anchors[0][1]
+    if x >= anchors[-1][0]:
+        return anchors[-1][1]
+    for (x0, y0), (x1, y1) in zip(anchors, anchors[1:]):
+        if x <= x1:
+            return y0 + (x - x0) / (x1 - x0) * (y1 - y0)
+    return anchors[-1][1]
+
+
+@dataclass
+class SpringResult:
+    score: int               # 0-100, the headline number
+    tier: str                # Excellent | Strong | Fair | Weak | Fragile
+    components: dict = field(default_factory=dict)   # key -> sub-score details
+    coverage: float = 1.0    # share of total weight that was available (0-1)
+
+
+def _spring_tier(score: float) -> str:
+    for lower, name in SPRING_TIERS:
+        if score >= lower:
+            return name
+    return "Fragile"
+
+
+def spring_score(
+    z: Optional[float] = None,
+    f_score: Optional[float] = None,
+    m_score: Optional[float] = None,
+    curr: Optional[dict] = None,
+    prior: Optional[dict] = None,
+) -> SpringResult:
+    """
+    The composite 0-100 health score: a weighted average of six sub-scores, each
+    scaled through fixed published anchors (see _SPRING_ANCHORS / SPRING_WEIGHTS).
+
+    Inputs are plain numbers, not result objects, so both the live path (which has
+    AltmanResult etc.) and the snapshot path (which has bare stored scores) can call
+    it. `curr` / `prior` are the standard payload year-dicts; when absent, the three
+    quality ingredients degrade and the composite reweights over what remains.
+
+    Raises ValueError when fewer than SPRING_MIN_WEIGHT points of weight are
+    available, or when none of the three backbone models scored: a composite built
+    on that little is noise wearing a number.
+    """
+    subs: dict = {}
+
+    subs["altman"] = None if z is None else _piecewise(z, _SPRING_ANCHORS["altman"])
+    subs["piotroski"] = None if f_score is None else (f_score / 9.0) * 100.0
+    subs["beneish"] = None if m_score is None else _piecewise(m_score, _SPRING_ANCHORS["beneish"])
+
+    curr = curr or {}
+    prior = prior or {}
+
+    acc = _safe_div((curr.get("net_income") - curr.get("cfo"))
+                    if None not in (curr.get("net_income"), curr.get("cfo")) else None,
+                    curr.get("total_assets"))
+    subs["accruals"] = None if acc is None else _piecewise(acc, _SPRING_ANCHORS["accruals"])
+
+    def _gross_margin(d):
+        if None in (d.get("sales"), d.get("cogs")):
+            return None
+        return _safe_div(d["sales"] - d["cogs"], d["sales"])
+
+    gm_c, gm_p = _gross_margin(curr), _gross_margin(prior)
+    subs["margin_trend"] = (None if None in (gm_c, gm_p)
+                            else _piecewise(gm_c - gm_p, _SPRING_ANCHORS["margin_trend"]))
+
+    lev_c = _safe_div(curr.get("long_term_debt"), curr.get("total_assets"))
+    lev_p = _safe_div(prior.get("long_term_debt"), prior.get("total_assets"))
+    subs["leverage_trend"] = (None if None in (lev_c, lev_p)
+                              else _piecewise(lev_c - lev_p, _SPRING_ANCHORS["leverage_trend"]))
+
+    available = {k: v for k, v in subs.items() if v is not None}
+    weight_available = sum(SPRING_WEIGHTS[k] for k in available)
+    backbone = any(k in available for k in ("altman", "piotroski", "beneish"))
+    if weight_available < SPRING_MIN_WEIGHT or not backbone:
+        raise ValueError(
+            "Spring Score: not enough inputs to build an honest composite "
+            f"(only {weight_available} of 100 weight points available).")
+
+    composite = sum(SPRING_WEIGHTS[k] * v for k, v in available.items()) / weight_available
+
+    components = {
+        k: {
+            "sub_score": None if v is None else round(v, 1),
+            "weight": SPRING_WEIGHTS[k],
+            "available": v is not None,
+        }
+        for k, v in subs.items()
+    }
+    return SpringResult(
+        score=int(round(composite)),
+        tier=_spring_tier(composite),
+        components=components,
+        coverage=round(weight_available / 100.0, 2),
+    )
 
 
 # ----------------------------------------------------------------------------

@@ -192,6 +192,66 @@ def _piotroski_sentence(piotroski) -> str:
 
 
 # ----------------------------------------------------------------------------
+# SPRING — name what lifts the composite and what holds it back
+# ----------------------------------------------------------------------------
+# Contribution = weight × (sub-score − 50): how far each available ingredient pushes
+# the composite away from neutral. Same spirit as the Altman attribution above —
+# computed only from the numbers the score itself used, fully reproducible.
+_SPRING_LIFT = {
+    "altman": "low distress risk (Altman Z)",
+    "piotroski": "strong fundamentals (Piotroski F)",
+    "beneish": "clean earnings quality (Beneish M)",
+    "accruals": "cash-backed earnings",
+    "margin_trend": "an improving gross margin",
+    "leverage_trend": "falling leverage",
+}
+_SPRING_DRAG = {
+    "altman": "elevated distress risk (Altman Z)",
+    "piotroski": "weak fundamentals (Piotroski F)",
+    "beneish": "earnings-quality red flags (Beneish M)",
+    "accruals": "earnings running ahead of cash",
+    "margin_trend": "a compressing gross margin",
+    "leverage_trend": "rising leverage",
+}
+
+
+def _spring_sentence(spring) -> str:
+    contribs = []
+    for key, comp in spring.components.items():
+        if comp.get("available"):
+            contribs.append((key, comp["weight"] * (comp["sub_score"] - 50.0)))
+
+    lifts = sorted([c for c in contribs if c[1] > 0], key=lambda t: t[1], reverse=True)
+    drags = sorted([c for c in contribs if c[1] < 0], key=lambda t: t[1])
+
+    lift_codes = [lifts[0][0]] if lifts else []
+    if len(lifts) > 1 and lifts[1][1] >= 0.5 * lifts[0][1]:
+        lift_codes.append(lifts[1][0])
+    drag_codes = [drags[0][0]] if drags else []
+    if len(drags) > 1 and drags[1][1] <= 0.5 * drags[0][1]:
+        drag_codes.append(drags[1][0])
+
+    lift = _join_human([_SPRING_LIFT[c] for c in lift_codes])
+    drag = _join_human([_SPRING_DRAG[c] for c in drag_codes])
+
+    head = f"Spring Score {spring.score}, {spring.tier.lower()}"
+    if lift and drag:
+        body = f"{head}: lifted by {lift}, held back by {drag}."
+    elif lift:
+        body = f"{head}: lifted by {lift}, with no component pulling it down."
+    elif drag:
+        body = f"{head}: held back by {drag}, with no component lifting it."
+    else:
+        body = f"{head}: every component sits at neutral."
+
+    if spring.coverage < 1.0:
+        n = sum(1 for c in spring.components.values() if c.get("available"))
+        body += (f" Scored on partial data: {n} of {len(spring.components)} "
+                 "components were available, and the weights rebalanced across them.")
+    return body
+
+
+# ----------------------------------------------------------------------------
 # OVERALL — synthesise the existing verdict into one plain-English line
 # ----------------------------------------------------------------------------
 _HEALTH_PHRASE = {
@@ -217,17 +277,19 @@ def _overall_sentence(verdict) -> str:
 # ----------------------------------------------------------------------------
 # Public entry point
 # ----------------------------------------------------------------------------
-def explain(altman, piotroski, beneish, verdict) -> dict:
+def explain(altman, piotroski, beneish, verdict, spring=None) -> dict:
     """
     Build the "why" commentary from the model result objects.
 
-    Returns a dict with keys 'altman', 'piotroski', 'beneish', 'overall'. A model
-    that is None (not applicable for this company) maps to None so the caller can
-    skip it. 'overall' is always a string.
+    Returns a dict with keys 'altman', 'piotroski', 'beneish', 'spring', 'overall'.
+    A model that is None (not applicable for this company) maps to None so the
+    caller can skip it. 'overall' is always a string. `spring` is optional (a
+    models.SpringResult) so existing callers that predate the composite keep working.
     """
     return {
         "altman": _altman_sentence(altman) if altman is not None else None,
         "piotroski": _piotroski_sentence(piotroski) if piotroski is not None else None,
         "beneish": _beneish_sentence(beneish) if beneish is not None else None,
+        "spring": _spring_sentence(spring) if spring is not None else None,
         "overall": _overall_sentence(verdict),
     }

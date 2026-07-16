@@ -34,6 +34,7 @@ from typing import List, Optional
 from benchmark import position, sector_stats
 from commentary import explain
 from data import run_models
+from models import spring_score
 
 SCHEMA_VERSION = "1.0"
 
@@ -112,7 +113,6 @@ def build_report(payload: dict, snapshot_rows: Optional[List[dict]] = None,
     """
     runner = run_models_fn or run_models
     altman, piotroski, beneish, verdict, notes = runner(payload)
-    why = explain(altman, piotroski, beneish, verdict)
 
     meta = payload.get("meta", {})
     ticker = meta.get("ticker")
@@ -121,6 +121,19 @@ def build_report(payload: dict, snapshot_rows: Optional[List[dict]] = None,
     z = altman.z if altman else None
     f_score = piotroski.score if piotroski else None
     m_score = beneish.m if beneish else None
+
+    # The composite headline. Built from the same numbers the three score blocks
+    # carry plus the payload's own line items, so it can never disagree with them.
+    # When too little is available (spring_score's minimum-weight rule) it degrades
+    # to a first-class N/A block, exactly like any single model.
+    try:
+        spring = spring_score(z=z, f_score=f_score, m_score=m_score,
+                              curr=payload.get("curr"), prior=payload.get("prior"))
+        spring_note = None
+    except ValueError as e:
+        spring, spring_note = None, str(e)
+
+    why = explain(altman, piotroski, beneish, verdict, spring=spring)
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -136,6 +149,15 @@ def build_report(payload: dict, snapshot_rows: Optional[List[dict]] = None,
             "summary": why["overall"],              # the one plain-English line
         },
         "scores": {
+            "spring": _score_block(
+                applicable=spring is not None,
+                note=spring_note,
+                why=why["spring"],
+                value=spring.score if spring else None,
+                tier=spring.tier if spring else None,
+                components=spring.components if spring else {},
+                coverage=spring.coverage if spring else None,
+            ),
             "altman": _score_block(
                 applicable=altman is not None,
                 note=notes.get("Altman Z-Score"),
@@ -197,6 +219,8 @@ def portfolio_row(report: dict, shares: Optional[float] = None,
         "ticker": report["company"]["ticker"],
         "name": report["company"]["name"],
         "sector": report["company"]["sector"],
+        "spring_score": scores["spring"]["value"],
+        "spring_tier": scores["spring"]["tier"],
         "z": z, "zone": zone,
         "f_score": f_score, "m_score": m_score, "m_flag": m_flag,
         "verdict": {"health": report["verdict"]["health"],

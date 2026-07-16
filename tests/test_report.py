@@ -64,6 +64,21 @@ check("healthy sample is not flagged", r["scores"]["beneish"]["flag"] is False)
 check("every applicable score has a why sentence",
       all(r["scores"][m]["why"] for m in ("altman", "piotroski", "beneish")))
 
+print("SPRING SCORE: the composite headline rides the same contract")
+sp = r["scores"]["spring"]
+check("spring has the standard envelope plus tier/components/coverage",
+      {"applicable", "why", "note", "value", "tier", "components", "coverage"} <= set(sp))
+check("healthy sample gets a full-coverage composite",
+      sp["applicable"] is True and sp["coverage"] == 1.0)
+check("spring value is an int in 0-100",
+      isinstance(sp["value"], int) and 0 <= sp["value"] <= 100)
+check("spring tier is one of the five",
+      sp["tier"] in ("Excellent", "Strong", "Fair", "Weak", "Fragile"))
+check("spring carries all six components",
+      set(sp["components"]) == {"altman", "piotroski", "beneish", "accruals",
+                                "margin_trend", "leverage_trend"})
+check("spring has a why sentence naming itself", "Spring Score" in sp["why"])
+
 print("A FLAGGED COMPANY surfaces the flag through the contract")
 rf = build_report(FLAGGED)
 check("beneish flag is True", rf["scores"]["beneish"]["flag"] is True)
@@ -82,6 +97,9 @@ for model in ("altman", "piotroski", "beneish"):
           blk["applicable"] is False and blk["note"] and blk["why"] is None)
 check("verdict degrades to Unknown, not a crash", rb["verdict"]["health"] == "Unknown")
 check("overall summary still written", bool(rb["verdict"]["summary"]))
+check("spring degrades to N/A with a plain reason when the backbone is gone",
+      rb["scores"]["spring"]["applicable"] is False
+      and rb["scores"]["spring"]["note"] and rb["scores"]["spring"]["why"] is None)
 
 print("BENCHMARK: absent without peers, present with them")
 check("no snapshot means benchmark unavailable", r["benchmark"]["available"] is False)
@@ -118,10 +136,11 @@ check("row m_flag matches report", row["m_flag"] == rbm["scores"]["beneish"]["fl
 check("row health matches report", row["verdict"]["health"] == rbm["verdict"]["health"])
 check("row carries shares as weight", row["weight"] == 25)
 check("row has a worst_signal line", bool(row["worst_signal"]))
+check("row spring_score matches report", row["spring_score"] == rbm["scores"]["spring"]["value"])
 check("row shape matches what rank_portfolio consumes",
-      {"ticker", "name", "sector", "z", "zone", "f_score", "m_score", "m_flag",
-       "verdict", "source", "data_source", "weight", "worst_signal",
-       "unscored_reason"} == set(row))
+      {"ticker", "name", "sector", "spring_score", "spring_tier", "z", "zone",
+       "f_score", "m_score", "m_flag", "verdict", "source", "data_source", "weight",
+       "worst_signal", "unscored_reason"} == set(row))
 check("source names the PATH so rank_portfolio can filter", row["source"] == "live")
 check("data_source names WHERE the numbers came from, with an as-of",
       set(row["data_source"]) == {"source", "as_of"})

@@ -35,8 +35,11 @@ _DEFAULT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 # deterioration or an improvement, because it means "we lost the data", not "it got worse".
 _HEALTH_RANK = {"Distressed": 0, "Watch": 1, "Healthy": 2}
 
-# The fields we remember per ticker between runs.
-_TRACKED = ("z", "zone", "f_score", "m_score", "m_flag", "health", "integrity")
+# The fields we remember per ticker between runs. spring_score is stored but not yet
+# diffed: the direction logic stays on the health ladder; the trail is for the weekly
+# email and history views to read later.
+_TRACKED = ("z", "zone", "f_score", "m_score", "m_flag", "health", "integrity",
+            "spring_score")
 
 
 # ----------------------------------------------------------------------------
@@ -60,6 +63,7 @@ def snapshot_of(row: dict) -> dict:
         "m_flag": bool(row.get("m_flag")),
         "health": verdict.get("health"),
         "integrity": verdict.get("integrity"),
+        "spring_score": row.get("spring_score"),
     }
 
 

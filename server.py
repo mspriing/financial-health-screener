@@ -26,9 +26,10 @@ from pydantic import BaseModel
 
 from benchmark import load_universe
 from data import PRESETS, fetch_live, run_models
-from history import diff_portfolio, load_history, save_run
+from history import diff_portfolio
 from portfolio import EXAMPLE_CSV, parse_holdings, rank_portfolio, score_holdings
 from report import build_report
+from store import backend_name, load_history, save_run
 
 app = FastAPI(title="Financial Health Screener API", version="1.0")
 
@@ -63,7 +64,8 @@ def _friendly_error(e: Exception) -> HTTPException:
 def health():
     """Uptime-ping target (spec item D4): confirms the process is alive and the
     snapshot loaded, without hitting EDGAR or Finnhub."""
-    return {"status": "ok", "universe_rows": len(_UNIVERSE), "time": time.time()}
+    return {"status": "ok", "universe_rows": len(_UNIVERSE),
+            "history_backend": backend_name(), "time": time.time()}
 
 
 @app.get("/api/samples")

@@ -350,7 +350,17 @@ def fetch_live(ticker: str) -> dict:
     if price_info and price_info.get("market_cap"):
         payload["market_value_equity"] = float(price_info["market_cap"])
 
-    # --- 3. Provenance stamped on meta (source + as-of for fundamentals and price) ---
+    # --- 2b. Equity volatility for the Merton model (daily history via prices.py) ---
+    vol_info = None
+    try:
+        import prices
+        vol_info = prices.fetch_equity_volatility(raw)
+    except Exception:
+        vol_info = None
+    payload["equity_volatility"] = (
+        float(vol_info["value"]) if vol_info and vol_info.get("value") else None)
+
+    # --- 3. Provenance stamped on meta (source + as-of for every live input) ---
     meta["source"] = meta.get("fundamentals_source", meta.get("source"))
     meta["provenance"] = {
         "fundamentals": {
@@ -363,5 +373,11 @@ def fetch_live(ticker: str) -> dict:
             "as_of": (price_info or {}).get("as_of"),
             "value": (price_info or {}).get("market_cap"),
         } if price_info else {"source": None, "as_of": None, "value": None},
+        "equity_volatility": {
+            "source": (vol_info or {}).get("source"),
+            "as_of": (vol_info or {}).get("as_of"),
+            "value": (vol_info or {}).get("value"),
+            "window": (vol_info or {}).get("window"),
+        } if vol_info else {"source": None, "as_of": None, "value": None, "window": None},
     }
     return payload

@@ -9,7 +9,7 @@ independently of its own implementation.
 """
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from models import spring_score, SPRING_WEIGHTS, SPRING_MIN_WEIGHT
+from models import spring_score, SPRING_WEIGHTS, SPRING_MIN_WEIGHT, SPRING_TOTAL_WEIGHT
 from commentary import explain
 
 passed = 0
@@ -23,8 +23,13 @@ def check(name, cond):
 
 
 print("WEIGHTS")
-check("weights sum to 100", sum(SPRING_WEIGHTS.values()) == 100)
-check("six ingredients", len(SPRING_WEIGHTS) == 6)
+# Fundamentals ingredients still carry their original 100 points in the same ratios;
+# the Merton market-implied ingredient adds 15 alongside them (see test_merton.py).
+check("fundamentals weights still sum to 100",
+      sum(v for k, v in SPRING_WEIGHTS.items() if k != "merton") == 100)
+check("total weight is 115 with the market-implied ingredient",
+      SPRING_TOTAL_WEIGHT == 115)
+check("seven ingredients", len(SPRING_WEIGHTS) == 7)
 
 
 print("FULL COMPOSITE — healthy company, all six ingredients")
@@ -43,7 +48,11 @@ s = spring_score(z=3.555, f_score=9, m_score=-2.48,
                  curr=healthy_curr, prior=healthy_prior)
 check("score == 87", s.score == 87)
 check("tier == Excellent", s.tier == "Excellent")
-check("coverage == 1.0", s.coverage == 1.0)
+# The Merton market-implied ingredient (weight 15) is now part of the model, so a
+# fundamentals-only read covers 100 of 115 weight points, not the full 115. The
+# COMPOSITE VALUE is unchanged (the denominator is the weight actually available); only
+# coverage reflects the missing market dimension. See test_merton.py for the fold-in.
+check("coverage == 100/115 without Merton", s.coverage == round(100 / 115, 2))
 check("altman sub-score ~ 75.6", abs(s.components["altman"]["sub_score"] - 75.6) < 0.1)
 check("beneish sub-score ~ 78.7", abs(s.components["beneish"]["sub_score"] - 78.7) < 0.1)
 check("accruals sub-score == 60", s.components["accruals"]["sub_score"] == 60)
@@ -76,7 +85,7 @@ print("REWEIGHTING — snapshot path: three model scores, no line items")
 snap = spring_score(z=3.0, f_score=9, m_score=-2.48)
 check("score == 82", snap.score == 82)
 check("tier == Strong", snap.tier == "Strong")
-check("coverage == 0.6", snap.coverage == 0.6)
+check("coverage == 60/115", snap.coverage == round(60 / 115, 2))
 check("trend components marked unavailable",
       snap.components["margin_trend"]["available"] is False
       and snap.components["accruals"]["available"] is False)
@@ -125,7 +134,13 @@ why = explain(None, None, None, {"health": "Unknown", "integrity": "Not enough d
               spring=s)
 check("sentence names the score and tier", "Spring Score 87" in why["spring"]
       and "excellent" in why["spring"])
-check("full coverage doesn't mention partial data", "partial" not in why["spring"])
+# A truly full-coverage read needs the Merton ingredient too; only then is nothing partial.
+s_full = spring_score(z=3.555, f_score=9, m_score=-2.48,
+                      curr=healthy_curr, prior=healthy_prior, pd_merton=0.01)
+why_full = explain(None, None, None,
+                   {"health": "Unknown", "integrity": "Not enough data"}, spring=s_full)
+check("full coverage (with Merton) is 1.0", s_full.coverage == 1.0)
+check("full coverage doesn't mention partial data", "partial" not in why_full["spring"])
 why_snap = explain(None, None, None,
                    {"health": "Unknown", "integrity": "Not enough data"}, spring=snap)
 check("partial coverage says so", "partial data" in why_snap["spring"])

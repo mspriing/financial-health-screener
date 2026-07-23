@@ -68,16 +68,26 @@ print("SPRING SCORE: the composite headline rides the same contract")
 sp = r["scores"]["spring"]
 check("spring has the standard envelope plus tier/components/coverage",
       {"applicable", "why", "note", "value", "tier", "components", "coverage"} <= set(sp))
-check("healthy sample gets a full-coverage composite",
-      sp["applicable"] is True and sp["coverage"] == 1.0)
+# A preset has no live price history, so the Merton ingredient is absent and coverage
+# is 100 of 115 weight points, not full. That is the honest degradation, not a miss.
+check("fundamentals-only sample covers 100 of 115 weight points",
+      sp["applicable"] is True and sp["coverage"] == round(100 / 115, 2))
 check("spring value is an int in 0-100",
       isinstance(sp["value"], int) and 0 <= sp["value"] <= 100)
 check("spring tier is one of the five",
       sp["tier"] in ("Excellent", "Strong", "Fair", "Weak", "Fragile"))
-check("spring carries all six components",
+check("spring carries all seven components",
       set(sp["components"]) == {"altman", "piotroski", "beneish", "accruals",
-                                "margin_trend", "leverage_trend"})
+                                "margin_trend", "leverage_trend", "merton"})
 check("spring has a why sentence naming itself", "Spring Score" in sp["why"])
+
+print("MERTON: the market-implied block rides the contract, N/A without a live price feed")
+mn = r["scores"]["merton"]
+check("merton has the standard envelope plus its fields",
+      {"applicable", "why", "note", "value", "dd", "label",
+       "asset_vol", "equity_vol", "leverage", "face_debt"} <= set(mn))
+check("a preset has no market data, so merton is a first-class N/A with a note",
+      mn["applicable"] is False and mn["value"] is None and bool(mn["note"]))
 
 print("A FLAGGED COMPANY surfaces the flag through the contract")
 rf = build_report(FLAGGED)

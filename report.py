@@ -34,7 +34,7 @@ from typing import List, Optional
 from benchmark import position, sector_stats
 from commentary import explain
 from data import run_models
-from models import spring_score
+from models import merton_dd_pd, spring_score
 
 SCHEMA_VERSION = "1.0"
 
@@ -81,6 +81,45 @@ def _benchmark_block(sector: Optional[str], ticker: Optional[str],
     return {"sector": sector, "available": True, "metrics": metrics}
 
 
+def _merton_face_debt(payload: dict) -> Optional[float]:
+    """
+    The default point F for Merton: the standard KMV convention is short-term debt plus
+    half of long-term debt. current_liabilities is the available short-term-obligations
+    proxy from the filings; when a company reports no current/non-current split (banks,
+    insurers) fall back to total liabilities so the model still has a debt level to work
+    from. Returns None when neither is present.
+    """
+    curr = payload.get("curr") or {}
+    cl = curr.get("current_liabilities")
+    ltd = curr.get("long_term_debt") or 0.0
+    if cl is not None:
+        return cl + 0.5 * ltd
+    return curr.get("total_liabilities")
+
+
+def _compute_merton(payload: dict):
+    """
+    Run Merton from a payload, or return (None, plain-English note) when an input the
+    market-implied read needs is missing. The note is what the score block shows in
+    place of a number, the same honest N/A the filing models use.
+    """
+    equity_value = payload.get("market_value_equity") or 0.0
+    equity_vol = payload.get("equity_volatility")
+    face_debt = _merton_face_debt(payload)
+
+    if not equity_vol:
+        return None, ("No equity-price history available, so there is no market-implied "
+                      "volatility to read default risk from.")
+    if not equity_value:
+        return None, "No live market value of equity to imply an asset value from."
+    if not face_debt:
+        return None, "No reported debt, so there is no default point to measure against."
+    try:
+        return merton_dd_pd(equity_value, equity_vol, face_debt), None
+    except ValueError as e:
+        return None, str(e)
+
+
 def _provenance_block(meta: dict) -> dict:
     """
     Where every number came from and as of when. Live payloads carry a provenance block
@@ -95,6 +134,8 @@ def _provenance_block(meta: dict) -> dict:
             "fundamentals": {"source": meta.get("source"),
                              "as_of": meta.get("period_curr"), "fetched_at": None},
             "price": {"source": None, "as_of": None, "value": None},
+            "equity_volatility": {"source": None, "as_of": None,
+                                  "value": None, "window": None},
         }
     block["peers"] = {"source": "S&P 500 snapshot (data/universe_snapshot.csv)"}
     return block
@@ -122,18 +163,26 @@ def build_report(payload: dict, snapshot_rows: Optional[List[dict]] = None,
     f_score = piotroski.score if piotroski else None
     m_score = beneish.m if beneish else None
 
-    # The composite headline. Built from the same numbers the three score blocks
-    # carry plus the payload's own line items, so it can never disagree with them.
-    # When too little is available (spring_score's minimum-weight rule) it degrades
-    # to a first-class N/A block, exactly like any single model.
+    # Merton: the market-implied, dynamic default signal. Computed from the payload's
+    # live equity value and volatility plus the filing debt level; degrades to a
+    # first-class N/A block (with a plain note) whenever a market input is missing,
+    # which is the common case for presets and manual entry.
+    merton, merton_note = _compute_merton(payload)
+    pd_merton = merton.pd if merton else None
+
+    # The composite headline. Built from the same numbers the score blocks carry plus
+    # the payload's own line items and the Merton PD, so it can never disagree with
+    # them. When too little is available (spring_score's minimum-weight rule) it
+    # degrades to a first-class N/A block, exactly like any single model.
     try:
         spring = spring_score(z=z, f_score=f_score, m_score=m_score,
-                              curr=payload.get("curr"), prior=payload.get("prior"))
+                              curr=payload.get("curr"), prior=payload.get("prior"),
+                              pd_merton=pd_merton)
         spring_note = None
     except ValueError as e:
         spring, spring_note = None, str(e)
 
-    why = explain(altman, piotroski, beneish, verdict, spring=spring)
+    why = explain(altman, piotroski, beneish, verdict, spring=spring, merton=merton)
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -179,6 +228,23 @@ def build_report(payload: dict, snapshot_rows: Optional[List[dict]] = None,
                 value=m_score, flag=bool(beneish.flag) if beneish else False,
                 threshold=BENEISH_THRESHOLD,
                 indices=beneish.indices if beneish else {},
+            ),
+            # Market-implied, dynamic default signal (Merton). value is the 1-year
+            # probability of default (0-1); dd is the distance to default.
+            "merton": _score_block(
+                applicable=merton is not None,
+                note=merton_note,
+                why=why["merton"],
+                value=merton.pd if merton else None,
+                dd=merton.dd if merton else None,
+                label=merton.label if merton else None,
+                asset_vol=merton.asset_vol if merton else None,
+                equity_vol=merton.equity_vol if merton else None,
+                leverage=merton.leverage if merton else None,
+                face_debt=merton.face_debt if merton else None,
+                risk_free=merton.risk_free if merton else None,
+                horizon_years=merton.horizon_years if merton else None,
+                components=merton.components if merton else {},
             ),
         },
         "benchmark": _benchmark_block(sector, ticker, z, f_score, m_score, snapshot_rows),

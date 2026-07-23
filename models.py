@@ -24,6 +24,7 @@ that and shows "N/A" for just that model, so one missing line item never kills t
 whole analysis (important for banks, which lack a working-capital structure).
 """
 from __future__ import annotations
+import math
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -232,14 +233,201 @@ def piotroski_f(curr: dict, prior: dict) -> PiotroskiResult:
 
 
 # ----------------------------------------------------------------------------
-# 4. SPRING SCORE  (composite 0-100, weighted across six ingredients)
+# 4. MERTON DISTANCE-TO-DEFAULT / PROBABILITY OF DEFAULT  (market-implied)
 # ----------------------------------------------------------------------------
-# Weights sum to 100. The three published models are the backbone (60); the three
-# quality ingredients computed from the same line items are the rest (40). Analyst
-# consensus direction is a deliberate OPEN SLOT: the weights below get reviewed with
-# Prof. Simin before it joins, at which point it takes weight from this table rather
-# than being bolted on. Until then a missing ingredient simply reweights the rest
-# (see spring_score), the same honest degradation the three models already practice.
+# The first DYNAMIC, market-implied signal in the stack. Altman, Piotroski and
+# Beneish read filings; Merton (1974) reads the market's own view. It models equity
+# as a call option on the firm's assets: shareholders keep the upside above the debt
+# and walk away at zero, so equity is worth max(V - F, 0) at the horizon. Two market
+# observables (equity value E and equity volatility sigma_E) plus the debt level F
+# back out the two unobservables (asset value V, asset volatility sigma_V) through the
+# option identity. The distance from the implied asset value down to the debt, measured
+# in asset-volatility units, is the distance to default (DD); N(-DD) is the probability
+# of default (PD).
+#
+# We report the RISK-NEUTRAL PD: it uses the risk-free rate r rather than an estimated
+# real-world asset drift, which is the market-implied measure computable from public
+# inputs alone (no drift to guess), keeping the whole thing reproducible. Pure stdlib
+# math (math.erf), no numpy or scipy, so it runs anywhere the other models do.
+
+# A simple public risk-free proxy (roughly a 1-year Treasury bill) and the standard
+# 1-year horizon, passed into the function so it stays pure and the assumptions stay
+# visible in the glass box.
+DEFAULT_RISK_FREE = 0.04
+MERTON_HORIZON_YEARS = 1.0
+
+
+def _norm_cdf(x: float) -> float:
+    """Standard normal CDF via the error function (pure stdlib, no scipy)."""
+    return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
+
+
+def _merton_label(pd: float) -> str:
+    """Plain-English band for a 1-year probability of default."""
+    if pd < 0.005:
+        return "Remote"
+    if pd < 0.02:
+        return "Low"
+    if pd < 0.10:
+        return "Elevated"
+    if pd < 0.20:
+        return "High"
+    return "Severe"
+
+
+@dataclass
+class MertonResult:
+    pd: float                # probability of default over the horizon (0-1)
+    dd: float                # distance to default in standard deviations (= d2)
+    asset_value: float       # implied market value of firm assets (V)
+    asset_vol: float         # implied asset volatility (sigma_V, annualized)
+    equity_vol: float        # the equity-volatility input (sigma_E, annualized)
+    leverage: float          # F / V, debt over implied asset value
+    face_debt: float         # the default point F used
+    label: str               # Remote | Low | Elevated | High | Severe
+    risk_free: float         # r used
+    horizon_years: float     # T used
+    components: dict = field(default_factory=dict)
+
+
+def _bs_equity(v: float, sigma_v: float, face_debt: float, r: float, t: float):
+    """
+    Black-Scholes-Merton value of equity as a call on the firm's assets, and N(d1)
+    (the option delta). Caller guarantees v, sigma_v, face_debt, t are all positive.
+    """
+    root_t = math.sqrt(t)
+    d1 = (math.log(v / face_debt) + (r + 0.5 * sigma_v ** 2) * t) / (sigma_v * root_t)
+    d2 = d1 - sigma_v * root_t
+    equity = v * _norm_cdf(d1) - face_debt * math.exp(-r * t) * _norm_cdf(d2)
+    return equity, _norm_cdf(d1)
+
+
+def _solve_asset_value(sigma_v: float, equity_value: float, face_debt: float,
+                       r: float, t: float) -> float:
+    """
+    Invert the option equation for asset value V at a fixed asset volatility: find the
+    V for which _bs_equity(V) equals the observed equity value. Equity is strictly
+    increasing in V (its delta N(d1) > 0), so bisection is robust and deterministic.
+    """
+    lo = equity_value                      # V always exceeds E (debt carries value)
+    hi = equity_value + face_debt * 2.0 + 1.0
+    for _ in range(100):                   # widen the bracket until it straddles the root
+        eq_hi, _ = _bs_equity(hi, sigma_v, face_debt, r, t)
+        if eq_hi >= equity_value:
+            break
+        hi *= 2.0
+    for _ in range(200):
+        mid = 0.5 * (lo + hi)
+        eq_mid, _ = _bs_equity(mid, sigma_v, face_debt, r, t)
+        if abs(eq_mid - equity_value) < 1e-10 * max(1.0, equity_value):
+            return mid
+        if eq_mid < equity_value:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+def merton_dd_pd(
+    equity_value: float,
+    equity_vol: float,
+    face_debt: float,
+    risk_free: float = DEFAULT_RISK_FREE,
+    t: float = MERTON_HORIZON_YEARS,
+) -> MertonResult:
+    """
+    Merton distance-to-default and (risk-neutral) probability of default.
+
+      equity_value  E        market value of equity (market cap)
+      equity_vol    sigma_E  annualized volatility of equity returns
+      face_debt     F        default point (KMV: short-term debt + 0.5 * long-term)
+      risk_free     r        annual risk-free rate
+      t             T        horizon in years (1.0 by convention)
+
+    Solves the two-equation system
+
+        E         = V N(d1) - F e^{-rT} N(d2)
+        sigma_E E = N(d1) sigma_V V
+
+    for (V, sigma_V) by an outer fixed-point on sigma_V with an inner bisection for V,
+    then returns DD = d2 and PD = N(-DD).
+
+    Raises ValueError when the inputs cannot yield an honest reading (non-positive
+    equity, volatility, debt or horizon, a degenerate solve, or non-convergence), so
+    the caller drops the component with a plain note, exactly like the filing models.
+    """
+    if None in (equity_value, equity_vol, face_debt):
+        raise ValueError("Merton: needs equity value, equity volatility, and debt.")
+    if equity_value <= 0:
+        raise ValueError("Merton: equity value must be positive.")
+    if equity_vol <= 0:
+        raise ValueError("Merton: equity volatility must be positive.")
+    if face_debt <= 0:
+        raise ValueError("Merton: no debt to default on (face value <= 0).")
+    if t <= 0:
+        raise ValueError("Merton: horizon must be positive.")
+
+    # Initial guess: assets ~ equity + debt, equity vol scaled down toward asset vol.
+    v = equity_value + face_debt
+    sigma_v = equity_vol * equity_value / v
+
+    converged = False
+    for _ in range(200):
+        v = _solve_asset_value(sigma_v, equity_value, face_debt, risk_free, t)
+        _eq, n_d1 = _bs_equity(v, sigma_v, face_debt, risk_free, t)
+        if n_d1 <= 0:
+            raise ValueError("Merton: degenerate solve (option delta collapsed to zero).")
+        sigma_v_new = equity_vol * equity_value / (n_d1 * v)
+        if sigma_v_new <= 0:
+            raise ValueError("Merton: implied asset volatility went non-positive.")
+        if abs(sigma_v_new - sigma_v) < 1e-8:
+            sigma_v = sigma_v_new
+            converged = True
+            break
+        sigma_v = sigma_v_new
+
+    if not converged:
+        raise ValueError("Merton: iterative solve did not converge.")
+
+    v = _solve_asset_value(sigma_v, equity_value, face_debt, risk_free, t)
+    dd = (math.log(v / face_debt) + (risk_free - 0.5 * sigma_v ** 2) * t) / (sigma_v * math.sqrt(t))
+    pd = _norm_cdf(-dd)
+
+    return MertonResult(
+        pd=round(pd, 6),
+        dd=round(dd, 4),
+        asset_value=round(v, 2),
+        asset_vol=round(sigma_v, 6),
+        equity_vol=round(equity_vol, 6),
+        leverage=round(face_debt / v, 6),
+        face_debt=round(face_debt, 2),
+        label=_merton_label(pd),
+        risk_free=risk_free,
+        horizon_years=t,
+        components={
+            "Equity value (E)": round(equity_value, 2),
+            "Equity volatility (sigma_E)": round(equity_vol, 4),
+            "Asset value (V, implied)": round(v, 2),
+            "Asset volatility (sigma_V, implied)": round(sigma_v, 4),
+            "Default point (F)": round(face_debt, 2),
+            "Distance to default (DD)": round(dd, 4),
+        },
+    )
+
+
+# ----------------------------------------------------------------------------
+# 5. SPRING SCORE  (composite 0-100, weighted across the model ingredients)
+# ----------------------------------------------------------------------------
+# The fundamentals ingredients (100 points) are the filing-based core: the three
+# published models as the backbone (60) plus three quality ingredients from the same
+# line items (40). Merton (15) is added ALONGSIDE them as the market-implied component,
+# clearly labeled, keeping the fundamentals sub-weights in their exact ratios so Prof.
+# Simin's pending review of THOSE is untouched. The denominator is the sum of whatever
+# weight is actually available (SPRING_TOTAL_WEIGHT when every ingredient is present),
+# so a company that is missing an ingredient simply reweights over the rest, the same
+# honest degradation the models already practice; a fundamentals-only read (no market
+# signal) reports coverage below 1.0 because it genuinely lacks the market dimension.
+# Analyst-consensus direction remains a deliberate OPEN SLOT for a later review.
 SPRING_WEIGHTS = {
     "altman": 25,           # distress risk
     "piotroski": 20,        # fundamental strength
@@ -247,7 +435,12 @@ SPRING_WEIGHTS = {
     "accruals": 10,         # cash backing of earnings (Sloan, 1996 direction)
     "margin_trend": 15,     # gross margin, year over year
     "leverage_trend": 15,   # long-term debt / total assets, year over year
+    "merton": 15,           # market-implied default probability (Merton, 1974)
 }
+
+# Full weight when every ingredient is available; the composite denominator is the
+# weight actually present, not this total.
+SPRING_TOTAL_WEIGHT = sum(SPRING_WEIGHTS.values())
 
 # A composite over less than this much weight is a guess, not a score.
 SPRING_MIN_WEIGHT = 40
@@ -275,6 +468,9 @@ _SPRING_ANCHORS = {
     "margin_trend": [(-0.05, 0.0), (0.0, 50.0), (0.05, 100.0)],
     # Change in long-term debt / total assets: paying down debt = good.
     "leverage_trend": [(-0.05, 100.0), (0.0, 50.0), (0.05, 0.0)],
+    # Merton 1-year probability of default: lower is better. 2% ~ investment-grade
+    # boundary -> 70 (the Strong tier line); 10% -> 40 (Altman's distress anchor).
+    "merton": [(0.0, 100.0), (0.02, 70.0), (0.10, 40.0), (0.20, 20.0), (0.50, 0.0)],
 }
 
 
@@ -311,15 +507,18 @@ def spring_score(
     m_score: Optional[float] = None,
     curr: Optional[dict] = None,
     prior: Optional[dict] = None,
+    pd_merton: Optional[float] = None,
 ) -> SpringResult:
     """
-    The composite 0-100 health score: a weighted average of six sub-scores, each
+    The composite 0-100 health score: a weighted average of the sub-scores, each
     scaled through fixed published anchors (see _SPRING_ANCHORS / SPRING_WEIGHTS).
 
     Inputs are plain numbers, not result objects, so both the live path (which has
     AltmanResult etc.) and the snapshot path (which has bare stored scores) can call
     it. `curr` / `prior` are the standard payload year-dicts; when absent, the three
     quality ingredients degrade and the composite reweights over what remains.
+    `pd_merton` is the Merton 1-year probability of default (0-1); when absent, the
+    market-implied ingredient drops and coverage falls below 1.0 honestly.
 
     Raises ValueError when fewer than SPRING_MIN_WEIGHT points of weight are
     available, or when none of the three backbone models scored: a composite built
@@ -330,6 +529,7 @@ def spring_score(
     subs["altman"] = None if z is None else _piecewise(z, _SPRING_ANCHORS["altman"])
     subs["piotroski"] = None if f_score is None else (f_score / 9.0) * 100.0
     subs["beneish"] = None if m_score is None else _piecewise(m_score, _SPRING_ANCHORS["beneish"])
+    subs["merton"] = None if pd_merton is None else _piecewise(pd_merton, _SPRING_ANCHORS["merton"])
 
     curr = curr or {}
     prior = prior or {}
@@ -359,7 +559,7 @@ def spring_score(
     if weight_available < SPRING_MIN_WEIGHT or not backbone:
         raise ValueError(
             "Spring Score: not enough inputs to build an honest composite "
-            f"(only {weight_available} of 100 weight points available).")
+            f"(only {weight_available} of {SPRING_TOTAL_WEIGHT} weight points available).")
 
     composite = sum(SPRING_WEIGHTS[k] * v for k, v in available.items()) / weight_available
 
@@ -375,7 +575,7 @@ def spring_score(
         score=int(round(composite)),
         tier=_spring_tier(composite),
         components=components,
-        coverage=round(weight_available / 100.0, 2),
+        coverage=round(weight_available / SPRING_TOTAL_WEIGHT, 2),
     )
 
 

@@ -22,6 +22,7 @@ it moves into the FastAPI service verbatim. The app bridges st.secrets -> env.
 """
 from __future__ import annotations
 
+import math
 import os
 
 import requests
@@ -29,6 +30,12 @@ import requests
 import livecache
 
 PRICE_TTL = 15 * 60          # 15 minutes
+# Equity volatility feeds the Merton model. It is a statistic of daily returns, so it
+# barely moves intraday: a day-long cache is plenty and polite. One trailing year of
+# daily closes (~252 trading days) is the standard window.
+PRICE_HISTORY_TTL = 24 * 3600
+PRICE_HISTORY_PERIOD = "1y"
+TRADING_DAYS_PER_YEAR = 252
 FINNHUB_QUOTE = "https://finnhub.io/api/v1/quote"
 FINNHUB_PROFILE = "https://finnhub.io/api/v1/stock/profile2"
 
@@ -133,6 +140,79 @@ def fetch_price(ticker: str):
 
     try:
         info, fetched_at, _from_cache = livecache.cached("price", ticker, PRICE_TTL, pull)
+    except Exception:
+        return None
+    info = dict(info)
+    info["fetched_at"] = fetched_at
+    info["as_of"] = fetched_at
+    return info
+
+
+# ----------------------------------------------------------------------------
+# Equity volatility (for the Merton model): annualized stdev of daily returns
+# ----------------------------------------------------------------------------
+def annualized_volatility(closes, periods_per_year: int = TRADING_DAYS_PER_YEAR):
+    """
+    Annualized volatility from a series of daily closing prices, via the sample standard
+    deviation of daily log returns scaled by sqrt(periods_per_year). PURE: no network,
+    no globals, so it is unit-testable on a hand-built series (see tests/test_merton.py).
+
+    Returns None when there are too few clean, positive closes for an honest estimate
+    (fewer than 20 usable points), so the Merton component degrades rather than reporting
+    a volatility computed from a handful of days.
+    """
+    clean = [float(c) for c in (closes or [])
+             if c is not None and c == c and float(c) > 0]      # drop None and NaN
+    if len(clean) < 20:
+        return None
+    rets = [math.log(clean[i] / clean[i - 1]) for i in range(1, len(clean))]
+    n = len(rets)
+    if n < 2:
+        return None
+    mean = sum(rets) / n
+    variance = sum((r - mean) ** 2 for r in rets) / (n - 1)     # sample (n-1) variance
+    return math.sqrt(variance) * math.sqrt(periods_per_year)
+
+
+def _yfinance_history_closes(ticker: str):
+    """
+    Daily closing prices over the trailing year from yfinance. Finnhub's free tier does
+    not serve historical candles (that endpoint is premium), and yfinance is already the
+    fallback price source, so equity volatility reuses the existing data layer with no
+    new paid API. Returns a list of closes, or None when Yahoo has no history.
+    """
+    import yfinance as yf
+    t = yf.Ticker(ticker.strip().upper())
+    hist = t.history(period=PRICE_HISTORY_PERIOD, auto_adjust=True)
+    if hist is None or getattr(hist, "empty", True) or "Close" not in hist:
+        return None
+    closes = [float(c) for c in hist["Close"].values if c == c]
+    return closes or None
+
+
+def fetch_equity_volatility(ticker: str):
+    """
+    Cached (one day) annualized equity volatility for a ticker, from ~1 year of daily
+    closes. Returns {value, window, n, source, as_of, fetched_at} or None when history
+    is unavailable or too thin, in which case the caller leaves equity_volatility unset
+    and the Merton component degrades honestly (the same graceful path the price layer
+    already uses for a missing market cap).
+    """
+    ticker = ticker.strip().upper()
+
+    def pull():
+        closes = _yfinance_history_closes(ticker)
+        if not closes:
+            raise RuntimeError("no price history returned")
+        vol = annualized_volatility(closes)
+        if vol is None:
+            raise RuntimeError("history too thin for a volatility estimate")
+        return {"value": vol, "window": PRICE_HISTORY_PERIOD, "n": len(closes),
+                "source": "Yahoo Finance (daily history)"}
+
+    try:
+        info, fetched_at, _from_cache = livecache.cached(
+            "equityvol", ticker, PRICE_HISTORY_TTL, pull)
     except Exception:
         return None
     info = dict(info)

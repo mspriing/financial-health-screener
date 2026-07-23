@@ -204,6 +204,7 @@ _SPRING_LIFT = {
     "accruals": "cash-backed earnings",
     "margin_trend": "an improving gross margin",
     "leverage_trend": "falling leverage",
+    "merton": "a low market-implied default risk (Merton)",
 }
 _SPRING_DRAG = {
     "altman": "elevated distress risk (Altman Z)",
@@ -212,6 +213,7 @@ _SPRING_DRAG = {
     "accruals": "earnings running ahead of cash",
     "margin_trend": "a compressing gross margin",
     "leverage_trend": "rising leverage",
+    "merton": "elevated market-implied default risk (Merton)",
 }
 
 
@@ -252,6 +254,19 @@ def _spring_sentence(spring) -> str:
 
 
 # ----------------------------------------------------------------------------
+# MERTON — state the market-implied default probability and what drives it
+# ----------------------------------------------------------------------------
+def _merton_sentence(merton) -> str:
+    pct = merton.pd * 100.0
+    pd_str = f"{pct:.1f}%" if pct >= 0.1 else "under 0.1%"
+    return (f"The market implies a 1-year default probability of {pd_str} "
+            f"({merton.label.lower()}), a distance to default of {merton.dd:.2f} "
+            f"standard deviations, backed out from an implied asset volatility of "
+            f"{merton.asset_vol * 100:.0f}% against a debt load {merton.leverage * 100:.0f}% "
+            "of implied asset value.")
+
+
+# ----------------------------------------------------------------------------
 # OVERALL — synthesise the existing verdict into one plain-English line
 # ----------------------------------------------------------------------------
 _HEALTH_PHRASE = {
@@ -277,19 +292,21 @@ def _overall_sentence(verdict) -> str:
 # ----------------------------------------------------------------------------
 # Public entry point
 # ----------------------------------------------------------------------------
-def explain(altman, piotroski, beneish, verdict, spring=None) -> dict:
+def explain(altman, piotroski, beneish, verdict, spring=None, merton=None) -> dict:
     """
     Build the "why" commentary from the model result objects.
 
-    Returns a dict with keys 'altman', 'piotroski', 'beneish', 'spring', 'overall'.
-    A model that is None (not applicable for this company) maps to None so the
-    caller can skip it. 'overall' is always a string. `spring` is optional (a
-    models.SpringResult) so existing callers that predate the composite keep working.
+    Returns a dict with keys 'altman', 'piotroski', 'beneish', 'spring', 'merton',
+    'overall'. A model that is None (not applicable for this company) maps to None so
+    the caller can skip it. 'overall' is always a string. `spring` and `merton` are
+    optional (models.SpringResult / models.MertonResult) so callers that predate them
+    keep working.
     """
     return {
         "altman": _altman_sentence(altman) if altman is not None else None,
         "piotroski": _piotroski_sentence(piotroski) if piotroski is not None else None,
         "beneish": _beneish_sentence(beneish) if beneish is not None else None,
         "spring": _spring_sentence(spring) if spring is not None else None,
+        "merton": _merton_sentence(merton) if merton is not None else None,
         "overall": _overall_sentence(verdict),
     }

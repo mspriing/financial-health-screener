@@ -4,20 +4,21 @@ prices.py - current price and market value of equity, cached 15 minutes.
 The models need one live market number: market value of equity, the X4 term in
 Altman Z and the value of a portfolio holding. A holdings health check is not day
 trading, so 15-minute freshness fully satisfies "reflects current holdings" while
-staying far inside Finnhub's free tier (60 calls/min) and being polite to any source.
+staying polite to every source.
 
-Two layers behind one function:
-  1. Finnhub free tier  - used when FINNHUB_API_KEY is set (Streamlit secret / env var).
-                          Clean, official, real-time US quotes and market cap.
-  2. yfinance           - fallback when no key is configured, so the app keeps working
-                          out of the box. Yahoo's endpoints are unofficial, which is
-                          exactly why they are the fallback and not the backbone.
+Three layers behind one function, live-market source first:
+  1. Financial Modeling Prep - the primary live backbone (used when FMP_API_KEY is set).
+                          See fmp.py. Real US quotes and market cap on the free tier.
+  2. Finnhub free tier  - first fallback when FINNHUB_API_KEY is set. Real-time US quotes.
+  3. yfinance           - last-resort fallback so the app keeps working out of the box.
+                          Yahoo's endpoints are unofficial, which is exactly why they are
+                          the fallback and not the backbone.
 
 fetch_price(ticker) returns a dict with market_cap plus provenance, or None if no
 layer can price the ticker (the caller then leaves market_value_equity at 0.0, and
 Altman Z simply degrades, the same graceful path the models already handle).
 
-Pure and framework-free: reads the key from the environment, not from Streamlit, so
+Pure and framework-free: reads the keys from the environment, not from Streamlit, so
 it moves into the FastAPI service verbatim. The app bridges st.secrets -> env.
 """
 from __future__ import annotations
@@ -131,9 +132,16 @@ def fetch_price(ticker: str):
     ticker = ticker.strip().upper()
 
     def pull():
-        info = _finnhub_price(ticker)
+        info = None
+        try:
+            import fmp                          # primary live source
+            info = fmp.fetch_price(ticker)
+        except Exception:
+            info = None
         if info is None:
-            info = _yfinance_price(ticker)
+            info = _finnhub_price(ticker)       # first fallback
+        if info is None:
+            info = _yfinance_price(ticker)      # last-resort fallback
         if info is None:
             raise RuntimeError("no price source returned data")
         return info
@@ -144,7 +152,8 @@ def fetch_price(ticker: str):
         return None
     info = dict(info)
     info["fetched_at"] = fetched_at
-    info["as_of"] = fetched_at
+    if not info.get("as_of"):                   # preserve FMP's real quote date if present
+        info["as_of"] = fetched_at
     return info
 
 
@@ -176,10 +185,10 @@ def annualized_volatility(closes, periods_per_year: int = TRADING_DAYS_PER_YEAR)
 
 def _yfinance_history_closes(ticker: str):
     """
-    Daily closing prices over the trailing year from yfinance. Finnhub's free tier does
-    not serve historical candles (that endpoint is premium), and yfinance is already the
-    fallback price source, so equity volatility reuses the existing data layer with no
-    new paid API. Returns a list of closes, or None when Yahoo has no history.
+    Daily closing prices over the trailing year from yfinance. This is the FALLBACK
+    behind FMP's daily history (Finnhub's free tier does not serve candles at all), so
+    equity volatility keeps working with no paid dependency. Returns a list of closes, or
+    None when Yahoo has no history.
     """
     import yfinance as yf
     t = yf.Ticker(ticker.strip().upper())
@@ -201,6 +210,24 @@ def fetch_equity_volatility(ticker: str):
     ticker = ticker.strip().upper()
 
     def pull():
+        # FMP primary: daily closes from the live backbone.
+        fmp_hist = None
+        try:
+            import fmp
+            fmp_hist = fmp.fetch_daily_closes(ticker)
+        except Exception:
+            fmp_hist = None
+        if fmp_hist and fmp_hist.get("closes"):
+            vol = annualized_volatility(fmp_hist["closes"])
+            if vol is not None:
+                return {"value": vol,
+                        "window": fmp_hist.get("window", PRICE_HISTORY_PERIOD),
+                        "n": fmp_hist.get("n", len(fmp_hist["closes"])),
+                        "as_of": fmp_hist.get("as_of"),
+                        "source": fmp_hist.get("source",
+                                               "Financial Modeling Prep (daily history)")}
+
+        # yfinance fallback.
         closes = _yfinance_history_closes(ticker)
         if not closes:
             raise RuntimeError("no price history returned")
@@ -217,5 +244,6 @@ def fetch_equity_volatility(ticker: str):
         return None
     info = dict(info)
     info["fetched_at"] = fetched_at
-    info["as_of"] = fetched_at
+    if not info.get("as_of"):                   # preserve FMP's real history end-date
+        info["as_of"] = fetched_at
     return info

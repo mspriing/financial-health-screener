@@ -325,7 +325,10 @@ def fetch_live(ticker: str) -> dict:
     """
     raw = ticker.strip()
 
-    # --- 1. Fundamentals: EDGAR first ---
+    # --- 1. Fundamentals: EDGAR first (the scored line items stay "straight from the
+    #        filings", the credibility line), then FMP (the preferred fallback: cleaner
+    #        normalized statements and coverage of the ADRs/foreign filers EDGAR misses),
+    #        then yfinance last (which also raises the friendly index/unknown-ticker msg).
     payload = None
     try:
         import edgar
@@ -334,10 +337,30 @@ def fetch_live(ticker: str) -> dict:
         payload = None
 
     if payload is None:
-        # yfinance fallback also produces the friendly index/unknown-ticker errors.
+        try:
+            import fmp
+            payload = fmp.fetch_fundamentals(raw)
+        except Exception:
+            payload = None
+
+    if payload is None:
         payload = fetch_yfinance(raw)
 
     meta = payload["meta"]
+
+    # --- 1b. Sector: FMP is the PRIMARY classification source (ahead of the static peer
+    #         snapshot and yfinance .info that the fundamentals payloads already fall back
+    #         to). FMP's sector labels match the GICS-style names in the peer snapshot, so
+    #         the sector benchmark keeps matching. Missing FMP profile leaves the payload's
+    #         own sector untouched. ---
+    sector_info = None
+    try:
+        import fmp
+        sector_info = fmp.fetch_profile(raw)
+    except Exception:
+        sector_info = None
+    if sector_info and sector_info.get("sector"):
+        meta["sector"] = sector_info["sector"]
 
     # --- 2. Price / market value of equity: Finnhub first, yfinance fallback ---
     price_info = None
@@ -360,6 +383,18 @@ def fetch_live(ticker: str) -> dict:
     payload["equity_volatility"] = (
         float(vol_info["value"]) if vol_info and vol_info.get("value") else None)
 
+    # --- 2c. Analyst overlay (FMP premium; None on the free tier, lights up the moment
+    #         the key is upgraded). A LABELED OVERLAY only: attached BESIDE the payload,
+    #         never inside curr/prior, so run_models and the deterministic scores never
+    #         read it (SCREENER-NORTH-STAR sec 5, Group A.3). ---
+    analyst_info = None
+    try:
+        import fmp
+        analyst_info = fmp.fetch_analyst(raw)
+    except Exception:
+        analyst_info = None
+    payload["analyst"] = analyst_info
+
     # --- 3. Provenance stamped on meta (source + as-of for every live input) ---
     meta["source"] = meta.get("fundamentals_source", meta.get("source"))
     meta["provenance"] = {
@@ -379,5 +414,15 @@ def fetch_live(ticker: str) -> dict:
             "value": (vol_info or {}).get("value"),
             "window": (vol_info or {}).get("window"),
         } if vol_info else {"source": None, "as_of": None, "value": None, "window": None},
+        "sector": {
+            "source": (sector_info or {}).get("source"),
+            "as_of": (sector_info or {}).get("as_of"),
+            "value": meta.get("sector"),
+        },
+        "analyst": {
+            "source": (analyst_info or {}).get("source"),
+            "as_of": (analyst_info or {}).get("as_of"),
+            "available": analyst_info is not None,
+        },
     }
     return payload

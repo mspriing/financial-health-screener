@@ -34,9 +34,13 @@ FLAGGED = PRESETS["Momentum Software Co. (sample: earnings red flags)"]
 print("TOP-LEVEL SHAPE")
 r = build_report(HEALTHY)
 check("schema_version is stamped", r["schema_version"] == SCHEMA_VERSION)
-check("has the five top-level sections",
+check("has the top-level sections",
       set(r) == {"schema_version", "company", "verdict", "scores", "benchmark",
-                 "provenance", "periods"})
+                 "analyst", "provenance", "periods"})
+check("analyst overlay degrades to not-available for a non-live payload",
+      r["analyst"]["available"] is False
+      and set(r["analyst"]) == {"available", "consensus", "price_target",
+                                "estimates", "source", "as_of"})
 check("company block carries identity",
       set(r["company"]) == {"name", "ticker", "sector", "is_financial"})
 check("verdict carries health, integrity, and a plain-English summary",

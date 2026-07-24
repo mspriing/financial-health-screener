@@ -120,6 +120,27 @@ def _compute_merton(payload: dict):
         return None, str(e)
 
 
+def _analyst_block(overlay: Optional[dict]) -> dict:
+    """
+    The analyst-consensus OVERLAY: a labeled, non-scored view of what the sell side thinks,
+    kept strictly out of the deterministic scores (SCREENER-NORTH-STAR sec 5, Group A.3).
+    Populated from FMP's premium analyst endpoints; on the free tier the fetch returns None
+    and this degrades to available=False, so a view renders "not available" without any
+    special-casing, and it lights up automatically once the FMP key is on a paid tier.
+    """
+    if not overlay:
+        return {"available": False, "consensus": None, "price_target": None,
+                "estimates": None, "source": None, "as_of": None}
+    return {
+        "available": True,
+        "consensus": overlay.get("consensus"),
+        "price_target": overlay.get("price_target"),
+        "estimates": overlay.get("estimates"),
+        "source": overlay.get("source"),
+        "as_of": overlay.get("as_of"),
+    }
+
+
 def _provenance_block(meta: dict) -> dict:
     """
     Where every number came from and as of when. Live payloads carry a provenance block
@@ -248,6 +269,9 @@ def build_report(payload: dict, snapshot_rows: Optional[List[dict]] = None,
             ),
         },
         "benchmark": _benchmark_block(sector, ticker, z, f_score, m_score, snapshot_rows),
+        # Labeled analyst overlay, never mixed into the scores (Group A.3). Degrades to
+        # available=False until the FMP key is on a paid tier.
+        "analyst": _analyst_block(payload.get("analyst")),
         "provenance": _provenance_block(meta),
         "periods": {"current": meta.get("period_curr"), "prior": meta.get("period_prior")},
     }

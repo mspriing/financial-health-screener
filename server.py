@@ -17,6 +17,7 @@ Docs:         http://localhost:8000/docs  (FastAPI's auto-generated API explorer
 from __future__ import annotations
 
 import os
+import threading
 import time
 from typing import Optional
 
@@ -24,6 +25,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+import sector_peers
 from benchmark import load_universe
 from data import PRESETS, fetch_live, run_models
 from history import diff_portfolio
@@ -45,8 +47,74 @@ app.add_middleware(
 )
 
 # The S&P snapshot loads once per process, not per request (same discipline app.py
-# uses with st.cache_data). It is read-only after load.
+# uses with st.cache_data). It is read-only after load. Since 2026-07-24 it is the
+# FALLBACK peer source, not the primary one: sector_peers.py serves live FMP medians.
 _UNIVERSE = load_universe()
+
+# ----------------------------------------------------------------------------
+# Live sector peers: warmed off the request path, refreshed on a timer
+# ----------------------------------------------------------------------------
+# Sectors any request has asked about. The refresher only rebuilds these, so call volume
+# stays proportional to what people actually look at instead of rebuilding all eleven
+# sectors on every deploy.
+_WARM_SECTORS = set()
+_WARM_LOCK = threading.Lock()
+
+# Off by default: with an ephemeral filesystem, warming every sector at boot re-spends
+# the whole build on each redeploy. Set PEER_WARM_ON_START=1 if that is ever wanted.
+_WARM_ON_START = os.environ.get("PEER_WARM_ON_START", "").strip() in ("1", "true", "yes")
+
+
+def _peers_for(sector: Optional[str]) -> Optional[dict]:
+    """
+    The live peer set for a sector if one is cached and fresh, else None (the report then
+    falls back to the snapshot, labeled stale).
+
+    This NEVER builds. A cold sector costs one screener call plus up to seventy-five
+    statement calls, which is fine on a background thread and completely wrong inside a
+    page render, so a miss registers the sector for warming and returns None. The next
+    request for that sector gets live medians.
+    """
+    sector = sector_peers.normalize_sector(sector)
+    if not sector:
+        return None
+    with _WARM_LOCK:
+        new_sector = sector not in _WARM_SECTORS
+        _WARM_SECTORS.add(sector)
+    hit = sector_peers.cached_peer_set(sector)
+    if hit is None and new_sector:
+        threading.Thread(target=sector_peers.warm, args=(sector,),
+                         name=f"peer-warm-{sector}", daemon=True).start()
+    return hit
+
+
+def _refresh_loop() -> None:
+    """
+    Rebuild any warm sector whose cached peer set has aged past its TTL. This is what
+    makes the benchmark self-maintaining: there is no rebuild script to remember to run,
+    which is the whole complaint against the old universe_snapshot.csv.
+    """
+    while True:
+        time.sleep(sector_peers.REFRESH_INTERVAL)
+        with _WARM_LOCK:
+            sectors = sorted(_WARM_SECTORS)
+        for sector in sectors:
+            if sector_peers.is_stale(sector):
+                try:
+                    sector_peers.warm(sector)
+                except Exception:      # noqa: BLE001 - a refresher must never die
+                    pass
+
+
+@app.on_event("startup")
+def _start_peer_refresher() -> None:
+    threading.Thread(target=_refresh_loop, name="peer-refresh", daemon=True).start()
+    if _WARM_ON_START:
+        for sector in sector_peers.FMP_SECTORS:
+            with _WARM_LOCK:
+                _WARM_SECTORS.add(sector)
+            threading.Thread(target=sector_peers.warm, args=(sector,),
+                             name=f"peer-warm-{sector}", daemon=True).start()
 
 
 class PortfolioRequest(BaseModel):
@@ -63,9 +131,18 @@ def _friendly_error(e: Exception) -> HTTPException:
 @app.get("/health")
 def health():
     """Uptime-ping target (spec item D4): confirms the process is alive and the
-    snapshot loaded, without hitting EDGAR or Finnhub."""
+    snapshot loaded, without hitting EDGAR or Finnhub. It also reports which sectors
+    currently have a live peer set cached, which is how you confirm from outside that
+    the FMP benchmark is actually serving rather than silently sitting on the snapshot."""
+    with _WARM_LOCK:
+        warm = sorted(_WARM_SECTORS)
     return {"status": "ok", "universe_rows": len(_UNIVERSE),
-            "history_backend": backend_name(), "time": time.time()}
+            "history_backend": backend_name(),
+            "peer_depth": sector_peers._default_depth(),
+            "peer_sectors_warm": warm,
+            "peer_sectors_live": [s for s in warm
+                                  if sector_peers.cached_peer_set(s) is not None],
+            "time": time.time()}
 
 
 @app.get("/api/samples")
@@ -78,18 +155,24 @@ def list_samples():
 def sample_report(name: str):
     if name not in PRESETS:
         raise HTTPException(status_code=404, detail=f"No sample named '{name}'.")
-    return build_report(PRESETS[name], _UNIVERSE)
+    sample = PRESETS[name]
+    sector = (sample.get("meta") or {}).get("sector")
+    return build_report(sample, _UNIVERSE, peers=_peers_for(sector))
 
 
 @app.get("/api/company/{ticker}")
 def company_report(ticker: str, benchmark: bool = Query(True)):
-    """The live company report: EDGAR fundamentals + Finnhub price (Stage 1), scored
-    and benchmarked (Stage 2). This is what the Company drill-down screen renders."""
+    """The live company report: EDGAR fundamentals + FMP price/sector (Stage 1), scored
+    and benchmarked against LIVE FMP sector peers (Stage 2). This is what the Company
+    drill-down screen renders."""
     try:
         payload = fetch_live(ticker)
     except RuntimeError as e:
         raise _friendly_error(e)
-    return build_report(payload, _UNIVERSE if benchmark else None)
+    if not benchmark:
+        return build_report(payload)
+    sector = (payload.get("meta") or {}).get("sector")
+    return build_report(payload, _UNIVERSE, peers=_peers_for(sector))
 
 
 @app.get("/api/portfolio/example")

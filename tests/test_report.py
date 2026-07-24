@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from benchmark import load_universe
 from data import PRESETS
-from report import SCHEMA_VERSION, build_report, portfolio_row
+from report import SCHEMA_VERSION, SNAPSHOT_SOURCE, build_report, portfolio_row
 
 passed = 0
 
@@ -41,8 +41,8 @@ check("analyst overlay degrades to not-available for a non-live payload",
       r["analyst"]["available"] is False
       and set(r["analyst"]) == {"available", "consensus", "price_target",
                                 "estimates", "source", "as_of"})
-check("company block carries identity",
-      set(r["company"]) == {"name", "ticker", "sector", "is_financial"})
+check("company block carries identity and the leverage read",
+      set(r["company"]) == {"name", "ticker", "sector", "is_financial", "leverage"})
 check("verdict carries health, integrity, and a plain-English summary",
       set(r["verdict"]) == {"health", "integrity", "summary"} and r["verdict"]["summary"])
 check("periods carry current and prior", set(r["periods"]) == {"current", "prior"})
@@ -117,6 +117,8 @@ check("spring degrades to N/A with a plain reason when the backbone is gone",
 
 print("BENCHMARK: absent without peers, present with them")
 check("no snapshot means benchmark unavailable", r["benchmark"]["available"] is False)
+check("company leverage is computed even with no peer set at all",
+      abs(r["company"]["leverage"] - (2400 / 6000)) < 1e-9)
 
 rows = load_universe()
 payload = copy.deepcopy(HEALTHY)
@@ -124,22 +126,113 @@ payload["meta"]["sector"] = "Technology"
 payload["meta"]["ticker"] = "SAMPLE"
 rbm = build_report(payload, rows)
 check("with a sector and peers, benchmark is available", rbm["benchmark"]["available"] is True)
-check("benchmark covers z, f_score, m_score",
-      set(rbm["benchmark"]["metrics"]) == {"z", "f_score", "m_score"})
+check("benchmark covers leverage, z, f_score, m_score",
+      set(rbm["benchmark"]["metrics"]) == {"leverage", "z", "f_score", "m_score"})
 zm = rbm["benchmark"]["metrics"]["z"]
 check("z metric carries median/p25/p75/peer_count/percentile",
       {"median", "p25", "p75", "peer_count", "percentile", "thin"} <= set(zm))
+check("every metric carries its own source, as-of and stale flag",
+      all({"source", "as_of", "stale", "note"} <= set(m)
+          for m in rbm["benchmark"]["metrics"].values()))
 check("contract states direction so a frontend needs no finance knowledge",
       rbm["benchmark"]["metrics"]["z"]["higher_is_better"] is True
       and rbm["benchmark"]["metrics"]["m_score"]["higher_is_better"] is False)
+check("leverage is the metric where LOWER is better",
+      rbm["benchmark"]["metrics"]["leverage"]["higher_is_better"] is False)
 check("percentile computed for a non-thin metric",
       zm["thin"] or isinstance(zm["percentile"], float))
+
+print("SNAPSHOT FALLBACK is labeled STALE, never presented as current")
+check("snapshot-served metric is flagged stale", zm["stale"] is True)
+check("snapshot-served metric names the snapshot file",
+      "snapshot" in (zm["source"] or "").lower())
+check("snapshot-served metric carries the snapshot's own as-of date",
+      zm["as_of"] == "2026-06-19")
+check("block-level source/as_of/stale mirror the primary peer source",
+      rbm["benchmark"]["stale"] is True
+      and "snapshot" in (rbm["benchmark"]["source"] or "").lower())
+lev = rbm["benchmark"]["metrics"]["leverage"]
+check("leverage cannot be benchmarked from the snapshot (no such column)",
+      lev["thin"] is True and lev["median"] is None and lev["peer_count"] == 0)
+check("and it says so in a plain-English note rather than showing a blank",
+      "leverage column" in (lev["note"] or ""))
+check("but the company's own leverage number is still reported",
+      abs(lev["value"] - (2400 / 6000)) < 1e-9)
+
+print("LIVE FMP PEERS take precedence over the snapshot and are NOT stale")
+live_peers = {
+    "rows": [{"tr": f"P{i}", "sector": "Technology", "leverage": 0.30 + i / 100.0,
+              "z": 3.0 + i, "f_score": 5.0, "m_score": -2.5} for i in range(12)],
+    "metrics": ["leverage", "z", "f_score", "m_score"],
+    "source": "FMP live sector peers",
+    "as_of": "2026-07-24T12:00:00+00:00",
+    "peer_count": 12,
+}
+rlive = build_report(payload, rows, peers=live_peers)
+lm = rlive["benchmark"]["metrics"]
+check("live peers serve z, not the snapshot",
+      lm["z"]["source"] == "FMP live sector peers" and lm["z"]["stale"] is False)
+check("live peers make leverage benchmarkable at last",
+      lm["leverage"]["thin"] is False and lm["leverage"]["median"] is not None)
+check("live leverage median is the median of the peer rows",
+      abs(lm["leverage"]["median"] - 0.355) < 1e-9)
+check("live as-of is the pull timestamp, so the UI can show current conditions",
+      lm["leverage"]["as_of"] == "2026-07-24T12:00:00+00:00")
+check("block reports the live source and peer count",
+      rlive["benchmark"]["peer_count"] == 12
+      and rlive["benchmark"]["stale"] is False)
+check("nothing is mixed when the live set covers every metric",
+      rlive["benchmark"]["mixed_sources"] is False)
+
+print("SECTOR LABEL MISMATCH: live rows use FMP's vocabulary, the company may not")
+# A company classified from the snapshot arrives tagged "Financials"; sector_peers.py
+# normalizes onto FMP's "Financial Services". Matching each row set against its OWN label
+# is what stops that from silently emptying the peer group.
+gics = copy.deepcopy(payload)
+gics["meta"]["sector"] = "Financials"
+fin_peers = dict(live_peers)
+fin_peers["sector"] = "Financial Services"
+fin_peers["rows"] = [dict(r, sector="Financial Services") for r in live_peers["rows"]]
+rgics = build_report(gics, rows, peers=fin_peers)
+check("the live peer set still serves despite the label mismatch",
+      rgics["benchmark"]["metrics"]["z"]["stale"] is False
+      and rgics["benchmark"]["metrics"]["z"]["peer_count"] == 12)
+check("the company keeps its own sector label in the report",
+      rgics["company"]["sector"] == "Financials")
+
+print("CORE DEPTH: live leverage and Z, snapshot F and M, each labeled per metric")
+core_peers = dict(live_peers)
+core_peers["metrics"] = ["leverage", "z"]
+rcore = build_report(payload, rows, peers=core_peers)
+cm = rcore["benchmark"]["metrics"]
+check("leverage and z come from the live set", cm["leverage"]["stale"] is False
+      and cm["z"]["stale"] is False)
+check("f_score and m_score fall back to the snapshot, flagged stale",
+      cm["f_score"]["stale"] is True and cm["m_score"]["stale"] is True)
+check("the block declares that its metrics came from more than one source",
+      rcore["benchmark"]["mixed_sources"] is True)
+
+print("A THIN LIVE SET falls through to the snapshot rather than showing 3 lonely peers")
+thin_peers = dict(live_peers)
+thin_peers["rows"] = live_peers["rows"][:3]
+rthin = build_report(payload, rows, peers=thin_peers)
+check("z falls back to the snapshot when the live set is under MIN_PEERS",
+      rthin["benchmark"]["metrics"]["z"]["source"] == SNAPSHOT_SOURCE)
+check("leverage has no fallback to fall to, so it reports thin honestly",
+      rthin["benchmark"]["metrics"]["leverage"]["thin"] is True)
 
 print("PROVENANCE is always present, even for presets (synthesized honestly)")
 check("provenance has fundamentals, price, peers",
       {"fundamentals", "price", "peers"} <= set(r["provenance"]))
 check("preset fundamentals source names the sample data",
       "sample" in (r["provenance"]["fundamentals"]["source"] or "").lower())
+check("peers provenance reports the live source, as-of and count",
+      rlive["provenance"]["peers"] == {"source": "FMP live sector peers",
+                                       "as_of": "2026-07-24T12:00:00+00:00",
+                                       "stale": False, "peer_count": 12,
+                                       "mixed_sources": False})
+check("peers provenance says stale when the snapshot served",
+      rbm["provenance"]["peers"]["stale"] is True)
 
 print("PORTFOLIO ROW is a strict projection of the same report")
 row = portfolio_row(rbm, shares=25)

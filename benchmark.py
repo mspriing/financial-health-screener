@@ -1,11 +1,17 @@
 """
-benchmark.py — Sector benchmarking against the committed S&P 500 snapshot.
+benchmark.py: Sector benchmarking stats.
 
 Given the screened company's scores, this module answers a single question:
 "how does this land versus its sector peers?" It is PURE and testable in the same
 spirit as models.py — the stats functions take explicit rows (a list of dicts) and
-return numbers, with no network and no Streamlit. The data layer (app.py) loads the
-snapshot once with @st.cache_data and hands the rows in.
+return numbers, with no network and no Streamlit.
+
+WHERE THE ROWS COME FROM (changed 2026-07-24): the peer rows are now built LIVE from
+FMP by sector_peers.py, and the committed S&P 500 snapshot is the FALLBACK rather than
+the source of truth. Nothing in this file cares which one it got: both paths hand in the
+same row shape, which is what makes the fallback a one-line decision in report.py rather
+than a second code path. load_universe() still reads the snapshot, because the snapshot
+is still the fallback and still backs the portfolio fast path.
 
 Robustness rules:
   * Use MEDIAN and quartiles (p25 / p75), never the mean — one outlier shouldn't
@@ -14,7 +20,8 @@ Robustness rules:
   * If a sector has fewer than MIN_PEERS peers with data for a metric, that metric is
     marked "too thin to benchmark" rather than shown as a number. This is exactly what
     happens to Z and M for financials (banks/insurers don't report the inputs), so the
-    UI degrades honestly instead of comparing against three lonely data points.
+    UI degrades honestly instead of comparing against three lonely data points. It is
+    also what happens to leverage on the snapshot path, which carries no leverage column.
 """
 from __future__ import annotations
 import csv
@@ -25,11 +32,14 @@ from typing import List, Optional
 # Below this many valid peers, a sector metric is too thin to benchmark against.
 MIN_PEERS = 8
 
-# Metrics we benchmark, matching the snapshot column names.
-METRICS = ("z", "f_score", "m_score")
+# Metrics we benchmark. `leverage` (total liabilities / total assets) is the one the
+# advisors actually asked for and the one the old snapshot could never answer: it has no
+# leverage column, so on the fallback path leverage reports thin rather than a number.
+METRICS = ("leverage", "z", "f_score", "m_score")
 
-# Numeric columns in the snapshot (everything else stays a string).
-_NUMERIC_COLS = ("z", "f_score", "m_score", "price_to_book", "ev_ebitda", "market_cap")
+# Numeric columns (snapshot cells, and the live peer rows sector_peers.py builds).
+_NUMERIC_COLS = ("z", "f_score", "m_score", "leverage",
+                 "price_to_book", "ev_ebitda", "market_cap")
 
 _DEFAULT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              "data", "universe_snapshot.csv")
@@ -65,6 +75,16 @@ def _to_float(v) -> Optional[float]:
     except (TypeError, ValueError):
         return None
     return None if f != f else f          # drop NaN
+
+
+def snapshot_as_of(rows: Optional[List[dict]]) -> Optional[str]:
+    """
+    The newest as_of_date in the snapshot rows. This is what lets the fallback path say
+    "these peer medians are from 2026-06-19" instead of presenting frozen numbers as if
+    they were current.
+    """
+    dates = sorted({str(r.get("as_of_date") or "").strip() for r in (rows or [])} - {""})
+    return dates[-1] if dates else None
 
 
 def lookup_sector(rows: List[dict], ticker: str) -> Optional[str]:

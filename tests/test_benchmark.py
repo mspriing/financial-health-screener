@@ -10,7 +10,7 @@ All inputs are tiny hand-built row lists — no live data, no snapshot file need
 """
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from benchmark import sector_stats, position, MIN_PEERS
+from benchmark import METRICS, MIN_PEERS, position, sector_stats, snapshot_as_of
 
 passed = 0
 def check(name, cond):
@@ -30,7 +30,7 @@ def row(tr, sector, z=None, f=None, m=None):
 tech = [row(f"T{i}", "Technology", z=float(i), f=i % 9, m=-2.0) for i in range(1, 11)]
 tech.append(row("SELF", "Technology", z=8.0, f=8, m=-2.5))
 
-print("SECTOR STATS — Technology (10 peers, Z = 1..10)")
+print("SECTOR STATS: Technology (10 peers, Z = 1..10)")
 stats = sector_stats(tech, "Technology", exclude_ticker="SELF")
 sz = stats["z"]
 check("peer count excludes SELF (10, not 11)", sz.count == 10)
@@ -40,7 +40,7 @@ check("median ≈ 5.5", abs(sz.median - 5.5) < 1e-9)
 check("p25 ≈ 3.25", abs(sz.p25 - 3.25) < 1e-9)
 check("p75 ≈ 7.75", abs(sz.p75 - 7.75) < 1e-9)
 
-print("PERCENTILE — above-median company lands > 50th")
+print("PERCENTILE: above-median company lands > 50th")
 # SELF Z = 8.0 vs peers 1..10 -> 7 strictly below, 1 equal (the peer at 8) -> 75th
 pos = position(8.0, sz.values)
 check("Z=8 in Tech is > 50th percentile", pos > 50)
@@ -48,7 +48,7 @@ check("Z=8 in Tech ≈ 75th percentile (ties at half weight)", abs(pos - 75.0) <
 # A below-median company lands < 50th
 check("Z=2 in Tech is < 50th percentile", position(2.0, sz.values) < 50)
 
-print("TOO THIN — fewer than MIN_PEERS valid peers")
+print("TOO THIN: fewer than MIN_PEERS valid peers")
 # Only 4 financials carry a Z; the rest are null (like real banks).
 fin = [row(f"F{i}", "Financial Services", z=float(i)) for i in range(1, 5)]
 fin += [row(f"B{i}", "Financial Services", z=None) for i in range(1, 8)]   # banks: null Z
@@ -58,7 +58,7 @@ check("Z marked thin (only 4 valid peers)", fstats["z"].thin is True)
 check("thin metric reports its real count (4)", fstats["z"].count == 4)
 check("thin metric leaves quartiles None", fstats["z"].median is None)
 
-print("NULLS EXCLUDED — missing values never enter the stats")
+print("NULLS EXCLUDED: missing values never enter the stats")
 # 8 valid Z values all = 10, plus 5 nulls. Median must be 10 (nulls are not 0).
 mixed = [row(f"V{i}", "Healthcare", z=10.0) for i in range(8)]
 mixed += [row(f"N{i}", "Healthcare", z=None) for i in range(5)]
@@ -68,10 +68,43 @@ check("median is 10, not dragged toward 0 by nulls", abs(hstats["z"].median - 10
 check("position ignores nulls (value=10 among all-10 peers = 50th)",
       abs(position(10.0, hstats["z"].values) - 50.0) < 1e-9)
 
-print("EMPTY / UNKNOWN SECTOR — degrades, doesn't crash")
+print("LEVERAGE: the metric the old snapshot could never answer")
+# 12 peers with leverage 0.20, 0.25 ... 0.75, plus the screened company at 0.70.
+levs = [row(f"L{i}", "Utilities", z=2.0) for i in range(12)]
+for i, r in enumerate(levs):
+    r["leverage"] = round(0.20 + 0.05 * i, 4)
+levs.append({"tr": "SELF", "sector": "Utilities", "leverage": 0.70,
+             "z": 2.0, "f_score": None, "m_score": None})
+lstats = sector_stats(levs, "Utilities", exclude_ticker="SELF")
+check("leverage is a benchmarked metric", "leverage" in METRICS)
+check("leverage peer count excludes SELF (12, not 13)", lstats["leverage"].count == 12)
+check("leverage not thin at 12 peers", lstats["leverage"].thin is False)
+# median of 0.20..0.75 step 0.05 (12 values) = midpoint of 0.45 and 0.50 = 0.475
+check("leverage median ≈ 0.475", abs(lstats["leverage"].median - 0.475) < 1e-9)
+check("a heavily levered company lands high in its sector",
+      position(0.70, lstats["leverage"].values) > 80)
+# The direction (high leverage is BAD) is stated in report.HIGHER_IS_BETTER, not here:
+# these stats stay direction-neutral exactly like z / f_score / m_score.
+
+print("SNAPSHOT ROWS carry no leverage column: thin, not zero")
+snapshot_like = [row(f"S{i}", "Technology", z=float(i), f=5, m=-2.5) for i in range(12)]
+sstats = sector_stats(snapshot_like, "Technology")
+check("leverage is thin when no row carries it", sstats["leverage"].thin is True)
+check("leverage count is 0, not 12 zeros", sstats["leverage"].count == 0)
+check("z is still benchmarked normally on the same rows", sstats["z"].thin is False)
+
+print("EMPTY / UNKNOWN SECTOR: degrades, doesn't crash")
 none_stats = sector_stats(tech, None)
 check("no sector => thin for every metric", all(none_stats[m].thin for m in none_stats))
 check("position with no peers returns None", position(5.0, []) is None)
 check("position with no value returns None", position(None, [1.0, 2.0]) is None)
+
+print("SNAPSHOT AS-OF: so the fallback can date itself instead of looking current")
+dated = [{"as_of_date": "2026-06-19"}, {"as_of_date": "2026-06-19"},
+         {"as_of_date": "2026-05-01"}]
+check("newest as-of wins", snapshot_as_of(dated) == "2026-06-19")
+check("no rows means no as-of", snapshot_as_of([]) is None)
+check("blank cells are ignored, not returned",
+      snapshot_as_of([{"as_of_date": ""}, {"as_of_date": "2026-01-02"}]) == "2026-01-02")
 
 print(f"\n{passed} checks passed.")

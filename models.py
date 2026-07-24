@@ -44,6 +44,21 @@ def _missing(d: dict, keys) -> list:
     return [k for k in keys if d.get(k) is None]
 
 
+def leverage_ratio(curr: Optional[dict]) -> Optional[float]:
+    """
+    Total liabilities / total assets, the headline leverage read.
+
+    It lives here, with the other formulas, because it has to be computed identically on
+    both sides of the sector benchmark: on the screened company (from its EDGAR filings)
+    and on every peer (from FMP's statements, via sector_peers.py). A company measured
+    one way against a median measured another way is not a benchmark. Returns None when
+    either input is missing or assets are zero, so it degrades like every other model.
+    """
+    curr = curr or {}
+    ratio = _safe_div(curr.get("total_liabilities"), curr.get("total_assets"))
+    return None if ratio is None else round(ratio, 6)
+
+
 # ----------------------------------------------------------------------------
 # 1. ALTMAN Z-SCORE  (original 5-factor model for public companies)
 # ----------------------------------------------------------------------------

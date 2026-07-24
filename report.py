@@ -31,16 +31,24 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from benchmark import position, sector_stats
+from benchmark import METRICS, position, sector_stats, snapshot_as_of
 from commentary import explain
 from data import run_models
-from models import merton_dd_pd, spring_score
+from models import leverage_ratio, merton_dd_pd, spring_score
 
 SCHEMA_VERSION = "1.0"
 
 # Which direction is "good" for each benchmarked metric. Stated here, in the contract,
-# so no frontend has to know finance to color a percentile correctly.
-HIGHER_IS_BETTER = {"z": True, "f_score": True, "m_score": False}
+# so no frontend has to know finance to color a percentile correctly. Leverage is the
+# one where MORE is worse, which is exactly why it needed a sector median rather than a
+# fixed cutoff: 60% liabilities-to-assets is ordinary for a utility and alarming for a
+# software company.
+HIGHER_IS_BETTER = {"leverage": False, "z": True, "f_score": True, "m_score": False}
+
+SNAPSHOT_SOURCE = "S&P 500 snapshot (data/universe_snapshot.csv)"
+# The snapshot predates the leverage benchmark and has no leverage column, so the
+# fallback path can carry only these three.
+SNAPSHOT_METRICS = ("z", "f_score", "m_score")
 
 BENEISH_THRESHOLD = -1.78
 PIOTROSKI_MAX = 9
@@ -57,17 +65,104 @@ def _score_block(applicable: bool, note: Optional[str], why: Optional[str], **fi
     return block
 
 
-def _benchmark_block(sector: Optional[str], ticker: Optional[str],
-                     z, f_score, m_score, snapshot_rows: Optional[List[dict]]) -> dict:
-    """Where this company lands against its sector peers, per metric, with peer counts."""
-    if not sector or not snapshot_rows:
-        return {"sector": sector, "available": False, "metrics": {}}
+def _candidate_peer_sets(sector: Optional[str], peers: Optional[dict],
+                         snapshot_rows: Optional[List[dict]]) -> List[dict]:
+    """
+    The peer sources to try, best first: the LIVE FMP set, then the committed snapshot.
 
-    stats = sector_stats(snapshot_rows, sector, exclude_ticker=ticker)
-    own = {"z": z, "f_score": f_score, "m_score": m_score}
+    This ordering is the whole "retire the snapshot as the source of truth" change. The
+    snapshot is not deleted and not ignored; it is demoted to the fallback that keeps the
+    benchmark rendering when FMP cannot serve a sector, and it is labeled stale when it
+    does serve, so a frozen 2026-06-19 median can never again be shown as if it were
+    current.
+
+    Each candidate carries the sector LABEL its own rows are tagged with, which is not
+    always the company's label. sector_peers.py normalizes onto FMP's vocabulary, so its
+    rows say "Financial Services" even when the company arrived from the snapshot tagged
+    "Financials". Matching each row set against its own label is what stops that
+    mismatch from silently emptying the peer group.
+    """
+    out: List[dict] = []
+    if peers and peers.get("rows"):
+        out.append({
+            "rows": peers["rows"],
+            "sector_label": peers.get("sector") or sector,
+            "metrics": tuple(peers.get("metrics") or METRICS),
+            "source": peers.get("source") or "FMP live sector peers",
+            "as_of": peers.get("as_of"),
+            "peer_count": peers.get("peer_count") or len(peers["rows"]),
+            "stale": False,
+        })
+    if snapshot_rows:
+        out.append({
+            "rows": snapshot_rows,
+            "sector_label": sector,
+            "metrics": SNAPSHOT_METRICS,
+            "source": SNAPSHOT_SOURCE,
+            "as_of": snapshot_as_of(snapshot_rows),
+            "peer_count": None,
+            "stale": True,
+        })
+    return out
+
+
+def _unbenchmarked(name: str, value, note: str) -> dict:
+    """A metric with no peer source at all: still reports the company's own number."""
+    return {"value": value, "median": None, "p25": None, "p75": None,
+            "peer_count": 0, "thin": True, "percentile": None,
+            "higher_is_better": HIGHER_IS_BETTER[name],
+            "source": None, "as_of": None, "stale": None, "note": note}
+
+
+def _benchmark_block(sector: Optional[str], ticker: Optional[str], own: dict,
+                     peers: Optional[dict],
+                     snapshot_rows: Optional[List[dict]]) -> dict:
+    """
+    Where this company lands against its sector peers, per metric, with peer counts and
+    PER-METRIC provenance.
+
+    Provenance is per metric, not per block, because the two paths do not cover the same
+    metrics. On core depth the live set carries leverage and Z while F and M still come
+    from the snapshot, and a single block-level "live" flag would quietly present a
+    month-old Beneish median as current. Each metric therefore says which peer set
+    answered it, as of when, and whether that set is stale.
+    """
+    candidates = _candidate_peer_sets(sector, peers, snapshot_rows)
+    if not sector or not candidates:
+        return {"sector": sector, "available": False, "metrics": {},
+                "source": None, "as_of": None, "stale": None,
+                "peer_count": None, "mixed_sources": False}
+
+    stats_by_set = [
+        (c, sector_stats(c["rows"], c["sector_label"], exclude_ticker=ticker))
+        for c in candidates]
+
     metrics = {}
-    for name, stat in stats.items():
+    used_sources = set()
+    for name in METRICS:
+        chosen = None
+        first_supporting = None
+        for c, stats in stats_by_set:
+            if name not in c["metrics"]:
+                continue
+            stat = stats[name]
+            if first_supporting is None:
+                first_supporting = (c, stat)
+            if not stat.thin:                      # first source with enough peers wins
+                chosen = (c, stat)
+                break
+        chosen = chosen or first_supporting
+
         value = own.get(name)
+        if chosen is None:
+            metrics[name] = _unbenchmarked(
+                name, value,
+                "No live peer set for this sector, and the snapshot fallback carries no "
+                "leverage column, so there is nothing honest to compare against.")
+            continue
+
+        c, stat = chosen
+        used_sources.add(c["source"])
         metrics[name] = {
             "value": value,
             "median": stat.median,
@@ -77,8 +172,17 @@ def _benchmark_block(sector: Optional[str], ticker: Optional[str],
             "thin": stat.thin,                     # too few peers to benchmark honestly
             "percentile": None if stat.thin else position(value, stat.values),
             "higher_is_better": HIGHER_IS_BETTER[name],
+            "source": c["source"],
+            "as_of": c["as_of"],
+            "stale": c["stale"],
+            "note": None,
         }
-    return {"sector": sector, "available": True, "metrics": metrics}
+
+    primary = candidates[0]
+    return {"sector": sector, "available": True, "metrics": metrics,
+            "source": primary["source"], "as_of": primary["as_of"],
+            "stale": primary["stale"], "peer_count": primary["peer_count"],
+            "mixed_sources": len(used_sources) > 1}
 
 
 def _merton_face_debt(payload: dict) -> Optional[float]:
@@ -141,11 +245,15 @@ def _analyst_block(overlay: Optional[dict]) -> dict:
     }
 
 
-def _provenance_block(meta: dict) -> dict:
+def _provenance_block(meta: dict, benchmark_block: dict) -> dict:
     """
     Where every number came from and as of when. Live payloads carry a provenance block
     from data.fetch_live; presets and manual entry do not, so we synthesize an honest
     one rather than leaving the field absent.
+
+    The peers entry used to be a hardcoded string naming the snapshot. It is now read off
+    the benchmark block that was actually built, so it reports the live FMP peer set and
+    its as-of when there is one, and says stale when the snapshot had to serve.
     """
     prov = meta.get("provenance")
     if prov:
@@ -158,17 +266,35 @@ def _provenance_block(meta: dict) -> dict:
             "equity_volatility": {"source": None, "as_of": None,
                                   "value": None, "window": None},
         }
-    block["peers"] = {"source": "S&P 500 snapshot (data/universe_snapshot.csv)"}
+    block["peers"] = {
+        "source": benchmark_block.get("source"),
+        "as_of": benchmark_block.get("as_of"),
+        "stale": benchmark_block.get("stale"),
+        "peer_count": benchmark_block.get("peer_count"),
+        "mixed_sources": benchmark_block.get("mixed_sources", False),
+    }
     return block
 
 
 def build_report(payload: dict, snapshot_rows: Optional[List[dict]] = None,
-                 run_models_fn=None) -> dict:
+                 run_models_fn=None, peers: Optional[dict] = None) -> dict:
     """
     Assemble the one company report. `payload` is any data.py payload (live, preset, or
-    manual). `snapshot_rows` is benchmark.load_universe() output; omit it to skip the
-    sector benchmark (the rest of the report is unaffected). `run_models_fn` is injectable
-    so callers (and tests) can stub the scoring pass without a network or a monkeypatch.
+    manual). `run_models_fn` is injectable so callers (and tests) can stub the scoring
+    pass without a network or a monkeypatch.
+
+    Two peer sources, tried in that order:
+      `peers`          - a LIVE FMP sector peer set from sector_peers.cached_peer_set().
+                         Preferred, and stamped with the timestamp it was pulled.
+      `snapshot_rows`  - benchmark.load_universe() output, the committed S&P 500 file.
+                         The fallback, labeled stale wherever it is used.
+    Pass neither to skip the sector benchmark entirely (the rest of the report is
+    unaffected).
+
+    This function stays network-free by design: the caller resolves the peer set (the
+    server does it off the request path) and hands the rows in, exactly the way
+    snapshot_rows has always worked. That is what keeps report.py pure and keeps a cold
+    sector build from ever landing inside a page render.
 
     Returns a JSON-serializable dict. See the module docstring for the shape, and
     tests/test_report.py for the contract that pins it.
@@ -205,6 +331,15 @@ def build_report(payload: dict, snapshot_rows: Optional[List[dict]] = None,
 
     why = explain(altman, piotroski, beneish, verdict, spring=spring, merton=merton)
 
+    # Leverage: not a model score, but the metric both professors singled out, and the
+    # one the benchmark exists to put in context. Computed with models.leverage_ratio,
+    # the same function sector_peers.py applies to every peer.
+    leverage = leverage_ratio(payload.get("curr"))
+    benchmark_block = _benchmark_block(
+        sector, ticker,
+        {"leverage": leverage, "z": z, "f_score": f_score, "m_score": m_score},
+        peers, snapshot_rows)
+
     return {
         "schema_version": SCHEMA_VERSION,
         "company": {
@@ -212,6 +347,10 @@ def build_report(payload: dict, snapshot_rows: Optional[List[dict]] = None,
             "ticker": ticker,
             "sector": sector,
             "is_financial": bool(meta.get("is_financial")),
+            # Total liabilities / total assets. Carried here as well as inside the
+            # benchmark block so a view can show the raw number without reaching into
+            # the peer comparison, and so it survives when there is no peer set at all.
+            "leverage": leverage,
         },
         "verdict": {
             "health": verdict["health"],            # Healthy | Watch | Distressed | Unknown
@@ -268,11 +407,11 @@ def build_report(payload: dict, snapshot_rows: Optional[List[dict]] = None,
                 components=merton.components if merton else {},
             ),
         },
-        "benchmark": _benchmark_block(sector, ticker, z, f_score, m_score, snapshot_rows),
+        "benchmark": benchmark_block,
         # Labeled analyst overlay, never mixed into the scores (Group A.3). Degrades to
         # available=False until the FMP key is on a paid tier.
         "analyst": _analyst_block(payload.get("analyst")),
-        "provenance": _provenance_block(meta),
+        "provenance": _provenance_block(meta, benchmark_block),
         "periods": {"current": meta.get("period_curr"), "prior": meta.get("period_prior")},
     }
 

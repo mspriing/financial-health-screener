@@ -183,20 +183,36 @@ def annualized_volatility(closes, periods_per_year: int = TRADING_DAYS_PER_YEAR)
     return math.sqrt(variance) * math.sqrt(periods_per_year)
 
 
-def _yfinance_history_closes(ticker: str):
+def _yfinance_history_bars(ticker: str):
     """
-    Daily closing prices over the trailing year from yfinance. This is the FALLBACK
+    Dated daily closes over the trailing year from yfinance, as {dates, closes} with the
+    two lists index-aligned and dates as plain YYYY-MM-DD strings. This is the FALLBACK
     behind FMP's daily history (Finnhub's free tier does not serve candles at all), so
-    equity volatility keeps working with no paid dependency. Returns a list of closes, or
-    None when Yahoo has no history.
+    both equity volatility and the portfolio correlation read keep working with no paid
+    dependency. Returns None when Yahoo has no usable history.
     """
     import yfinance as yf
     t = yf.Ticker(ticker.strip().upper())
     hist = t.history(period=PRICE_HISTORY_PERIOD, auto_adjust=True)
     if hist is None or getattr(hist, "empty", True) or "Close" not in hist:
         return None
-    closes = [float(c) for c in hist["Close"].values if c == c]
-    return closes or None
+    dates, closes = [], []
+    for idx, c in zip(hist.index, hist["Close"].values):
+        c = float(c)
+        if c != c:                                  # drop NaN
+            continue
+        dates.append(str(idx)[:10])
+        closes.append(c)
+    if not closes:
+        return None
+    return {"dates": dates, "closes": closes,
+            "source": "Yahoo Finance (daily history)"}
+
+
+def _yfinance_history_closes(ticker: str):
+    """Just the closes from _yfinance_history_bars, the shape the volatility path wants."""
+    bars = _yfinance_history_bars(ticker)
+    return bars["closes"] if bars else None
 
 
 def fetch_equity_volatility(ticker: str):
@@ -245,5 +261,58 @@ def fetch_equity_volatility(ticker: str):
     info = dict(info)
     info["fetched_at"] = fetched_at
     if not info.get("as_of"):                   # preserve FMP's real history end-date
+        info["as_of"] = fetched_at
+    return info
+
+
+# ----------------------------------------------------------------------------
+# Dated price history (for the portfolio correlation / Sharpe-delta read)
+# ----------------------------------------------------------------------------
+def fetch_price_history(ticker: str):
+    """
+    Cached (one day) trailing-year DATED daily closes for a ticker:
+    {dates, closes, n, window, source, as_of, fetched_at}, or None.
+
+    Same source layering as everything else here, FMP primary then yfinance. The
+    difference from fetch_equity_volatility is that this keeps the dates: a single
+    holding's volatility only needs the closes, but correlating two holdings requires
+    both series lined up on the same trading days, which a bare list of closes can not
+    support. risk.py does that alignment; this function only fetches.
+
+    Returns None (never raises) when no layer has usable history, so the caller lists the
+    holding as excluded with a reason rather than guessing at its returns.
+    """
+    ticker = ticker.strip().upper()
+
+    def pull():
+        bars = None
+        try:
+            import fmp                          # primary live source
+            bars = fmp.fetch_daily_closes(ticker)
+        except Exception:
+            bars = None
+        # A cached payload written before dates existed is not usable here; treat it as a
+        # miss and let the fallback answer rather than reporting a date-less history.
+        if not (bars and bars.get("dates") and bars.get("closes")):
+            bars = _yfinance_history_bars(ticker)
+        if not (bars and bars.get("dates") and bars.get("closes")):
+            raise RuntimeError("no price history returned")
+        dates, closes = bars["dates"], bars["closes"]
+        n = min(len(dates), len(closes))
+        if n < 2:
+            raise RuntimeError("price history too thin")
+        return {"dates": list(dates[:n]), "closes": [float(c) for c in closes[:n]],
+                "n": n, "window": bars.get("window", PRICE_HISTORY_PERIOD),
+                "as_of": bars.get("as_of") or dates[n - 1],
+                "source": bars.get("source", "unknown")}
+
+    try:
+        info, fetched_at, _from_cache = livecache.cached(
+            "pricehist", ticker, PRICE_HISTORY_TTL, pull)
+    except Exception:
+        return None
+    info = dict(info)
+    info["fetched_at"] = fetched_at
+    if not info.get("as_of"):
         info["as_of"] = fetched_at
     return info

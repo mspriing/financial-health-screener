@@ -30,7 +30,9 @@ from benchmark import load_universe
 from data import PRESETS, fetch_live, run_models
 from history import diff_portfolio
 from portfolio import EXAMPLE_CSV, parse_holdings, rank_portfolio, score_holdings
+from prices import fetch_price_history
 from report import build_report
+from risk import portfolio_risk
 from store import backend_name, load_history, save_run
 
 app = FastAPI(title="Financial Health Screener API", version="1.0")
@@ -183,7 +185,8 @@ def portfolio_example():
 
 
 @app.post("/api/portfolio")
-def score_portfolio(req: PortfolioRequest, remember: bool = Query(True)):
+def score_portfolio(req: PortfolioRequest, remember: bool = Query(True),
+                    risk: bool = Query(False)):
     """
     Parse a brokerage CSV, score every holding (snapshot fast path, live EDGAR/Finnhub
     fallback), and return the weakest-first rollup, sector concentration, and what
@@ -191,6 +194,11 @@ def score_portfolio(req: PortfolioRequest, remember: bool = Query(True)):
 
     remember=false skips writing to history (used for one-off "try a sample" runs so
     they do not pollute the real deterioration trail against a demo portfolio).
+
+    risk=true adds rollup["risk"]: the Sharpe-ratio delta per holding with correlations
+    and the concentration read (risk.py). OFF by default because it costs one price
+    history fetch per holding, and the holdings table itself does not need it, so the
+    existing screen's latency is unchanged.
     """
     try:
         parsed = parse_holdings(req.csv_text)
@@ -206,6 +214,9 @@ def score_portfolio(req: PortfolioRequest, remember: bool = Query(True)):
     history = load_history()
     tagged = diff_portfolio(scored, history)
     rollup = rank_portfolio(tagged)
+
+    if risk:
+        rollup["risk"] = portfolio_risk(tagged, fetch_price_history)
 
     if remember:
         save_run(scored)

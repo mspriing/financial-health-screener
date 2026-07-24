@@ -185,20 +185,26 @@ def _pull_history(ticker: str):
         return None
     # FMP returns newest-first; sort ascending by date so it matches yfinance's order.
     rows = sorted((r for r in rows if r.get("date")), key=lambda r: r["date"])
-    closes = [c for c in (_num(r.get("close")) for r in rows) if c and c > 0]
-    if len(closes) < 20:
+    # Dates travel WITH the closes. Volatility only needs the closes, but correlating two
+    # holdings needs both series on the same trading days, and a bare list of closes can
+    # not be aligned (see risk.py). One fetch serves both readers.
+    bars = [(str(r["date"])[:10], _num(r.get("close"))) for r in rows]
+    bars = [(d, c) for d, c in bars if c and c > 0]
+    if len(bars) < 20:
         return None
-    closes = closes[-HISTORY_MAX_CLOSES:]
-    return {"closes": closes, "as_of": rows[-1]["date"], "n": len(closes),
+    bars = bars[-HISTORY_MAX_CLOSES:]
+    return {"dates": [d for d, _ in bars], "closes": [c for _, c in bars],
+            "as_of": bars[-1][0], "n": len(bars),
             "window": HISTORY_PERIOD, "source": "Financial Modeling Prep (daily history)"}
 
 
 def fetch_daily_closes(ticker: str):
     """
-    Cached (one day) trailing-year daily closes from FMP, or None. Returns
-    {closes, as_of, n, window, source}; prices.py turns closes into annualized volatility
-    with its existing pure annualized_volatility(). This replaces the fragile yfinance
-    history call as the Merton volatility source, with yfinance kept as the fallback.
+    Cached (one day) trailing-year daily price history from FMP, or None. Returns
+    {dates, closes, as_of, n, window, source}; prices.py turns closes into annualized
+    volatility with its existing pure annualized_volatility(), and risk.py aligns the
+    dated series across holdings. This replaces the fragile yfinance history call as the
+    Merton volatility source, with yfinance kept as the fallback.
     """
     ticker = ticker.strip().upper()
 
@@ -209,7 +215,10 @@ def fetch_daily_closes(ticker: str):
         return info
 
     try:
-        info, fetched_at, _c = livecache.cached("fmp", f"hist_{ticker}", HISTORY_TTL, pull)
+        # Cache key bumped to hist2_ when dates joined the payload: an entry written by
+        # the old shape has no dates, and a silently date-less history would degrade the
+        # correlation read for a day. A new key can never collide with the old shape.
+        info, fetched_at, _c = livecache.cached("fmp", f"hist2_{ticker}", HISTORY_TTL, pull)
     except Exception:
         return None
     info = dict(info)

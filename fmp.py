@@ -31,8 +31,10 @@ import livecache
 # ----------------------------------------------------------------------------
 # Endpoints + cache TTLs (reuse the livecache pattern; match the existing layer)
 # ----------------------------------------------------------------------------
-BASE_V3 = "https://financialmodelingprep.com/api/v3"
-BASE_V4 = "https://financialmodelingprep.com/api/v4"
+# FMP retired the legacy /api/v3 and /api/v4 endpoints for any key issued after
+# 2025-08-31 (they now answer 403 "Legacy Endpoint"). The current API is the /stable
+# base, which takes the ticker as a ?symbol= query param. This adapter is built on it.
+BASE = "https://financialmodelingprep.com/stable"
 
 QUOTE_TTL = 15 * 60            # price / MVE: same 15-minute freshness as prices.py
 HISTORY_TTL = 24 * 3600       # daily closes for volatility: a day, like prices.py
@@ -121,7 +123,7 @@ def _num(v):
 # Price + market value of equity  (PRIMARY, ahead of Finnhub then yfinance)
 # ----------------------------------------------------------------------------
 def _pull_quote(ticker: str):
-    data = _get(f"{BASE_V3}/quote/{ticker}", {})
+    data = _get(f"{BASE}/quote", {"symbol": ticker})
     if not data or not isinstance(data, list):
         return None
     row = data[0] or {}
@@ -171,10 +173,14 @@ def fetch_price(ticker: str):
 # Daily closes for the Merton equity volatility  (PRIMARY, replacing yfinance history)
 # ----------------------------------------------------------------------------
 def _pull_history(ticker: str):
-    data = _get(f"{BASE_V3}/historical-price-full/{ticker}", {"serietype": "line"})
-    if not data or not isinstance(data, dict):
-        return None
-    rows = data.get("historical") or []
+    # Bound the window to a trailing ~400 calendar days (>= one trading year) so the
+    # payload stays small. Stable's EOD endpoint returns a plain list of daily bars.
+    today = dt.date.today()
+    params = {"symbol": ticker,
+              "from": (today - dt.timedelta(days=400)).isoformat(),
+              "to": today.isoformat()}
+    data = _get(f"{BASE}/historical-price-eod/full", params)
+    rows = data if isinstance(data, list) else None
     if not rows:
         return None
     # FMP returns newest-first; sort ascending by date so it matches yfinance's order.
@@ -215,7 +221,7 @@ def fetch_daily_closes(ticker: str):
 # Sector / profile classification  (PRIMARY, ahead of the static snapshot + yfinance)
 # ----------------------------------------------------------------------------
 def _pull_profile(ticker: str):
-    data = _get(f"{BASE_V3}/profile/{ticker}", {})
+    data = _get(f"{BASE}/profile", {"symbol": ticker})
     if not data or not isinstance(data, list):
         return None
     row = data[0] or {}
@@ -313,10 +319,10 @@ def _year_dict(inc: dict, bal: dict, cf: dict) -> dict:
 
 
 def _pull_fundamentals(ticker: str):
-    p = {"period": "annual", "limit": 4}
-    inc = _get(f"{BASE_V3}/income-statement/{ticker}", p)
-    bal = _get(f"{BASE_V3}/balance-sheet-statement/{ticker}", p)
-    cf = _get(f"{BASE_V3}/cash-flow-statement/{ticker}", p)
+    p = {"symbol": ticker, "period": "annual", "limit": 4}
+    inc = _get(f"{BASE}/income-statement", p)
+    bal = _get(f"{BASE}/balance-sheet-statement", p)
+    cf = _get(f"{BASE}/cash-flow-statement", p)
     if not (isinstance(inc, list) and isinstance(bal, list) and inc and bal):
         return None
 
@@ -388,8 +394,8 @@ def _pull_analyst(ticker: str):
     overlay = {"consensus": None, "price_target": None, "estimates": None,
                "as_of": None, "source": "Financial Modeling Prep"}
 
-    # Buy/hold/sell counts + a plain consensus rating (v4, premium).
-    cons = _get(f"{BASE_V4}/upgrades-downgrades-consensus", {"symbol": ticker})
+    # Buy/hold/sell counts + a plain consensus rating.
+    cons = _get(f"{BASE}/grades-consensus", {"symbol": ticker})
     if isinstance(cons, list) and cons:
         c = cons[0] or {}
         overlay["consensus"] = {
@@ -399,8 +405,8 @@ def _pull_analyst(ticker: str):
             "strong_sell": _num(c.get("strongSell")),
         }
 
-    # Price-target consensus (v4, premium).
-    pt = _get(f"{BASE_V4}/price-target-consensus", {"symbol": ticker})
+    # Price-target consensus.
+    pt = _get(f"{BASE}/price-target-consensus", {"symbol": ticker})
     if isinstance(pt, list) and pt:
         p = pt[0] or {}
         overlay["price_target"] = {
@@ -408,28 +414,29 @@ def _pull_analyst(ticker: str):
             "low": _num(p.get("targetLow")), "median": _num(p.get("targetMedian")),
         }
 
-    # Forward EPS / revenue estimates, most recent period (v3, premium).
-    est = _get(f"{BASE_V3}/analyst-estimates/{ticker}", {"limit": 1})
+    # Forward EPS / revenue estimates, most recent period.
+    est = _get(f"{BASE}/analyst-estimates", {"symbol": ticker, "period": "annual", "limit": 1})
     if isinstance(est, list) and est:
         e = est[0] or {}
         overlay["estimates"] = {
             "period": e.get("date"),
-            "eps_avg": _num(e.get("estimatedEpsAvg")),
-            "revenue_avg": _num(e.get("estimatedRevenueAvg")),
+            "eps_avg": _num(e.get("epsAvg")),
+            "revenue_avg": _num(e.get("revenueAvg")),
         }
         overlay["as_of"] = e.get("date")
 
     if not (overlay["consensus"] or overlay["price_target"] or overlay["estimates"]):
-        return None                       # free tier: every premium call declined -> None
+        return None                       # nothing the key can serve -> honest "not available"
     return overlay
 
 
 def fetch_analyst(ticker: str):
     """
     Cached (one day) analyst consensus + price-target + forward-estimate overlay, or None.
-    These are FMP premium endpoints, so on the current free key every call is declined and
-    this returns None (the overlay renders as "not available"). The moment the key is on a
-    paid tier the same calls return data and the overlay lights up with no code change.
+    Whatever the key's tier does not serve simply comes back empty and is dropped; when
+    NONE of the three is available this returns None and the overlay renders as "not
+    available", so it degrades honestly and needs no code change if access changes. (On
+    FMP's stable API these endpoints answer on the standard key, so the overlay populates.)
 
     This is a LABELED OVERLAY only. It is never mixed into the deterministic scores
     (SCREENER-NORTH-STAR sec 5, Group A.3): the caller attaches it beside the payload, not

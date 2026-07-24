@@ -152,8 +152,8 @@ check("empty quote -> None", fmp._pull_quote("TST") is None)
 # ----------------------------------------------------------------------------
 print("daily-close history for the Merton volatility")
 hist_rows = [{"date": f"2023-01-{d:02d}", "close": 100 + d} for d in range(1, 26)]
-# hand it to FMP newest-first (as the real API does) to prove we sort ascending
-fmp._get = make_get({"historical-price-full": {"historical": list(reversed(hist_rows))}})
+# stable's EOD endpoint returns a plain list, newest-first; prove we sort it ascending
+fmp._get = make_get({"historical-price-eod": list(reversed(hist_rows))})
 h = fmp._pull_history("TST")
 check("history parses enough closes", h is not None and h["n"] == 25)
 check("closes returned oldest-first (ascending)",
@@ -161,7 +161,7 @@ check("closes returned oldest-first (ascending)",
 check("as_of is the most recent close date", h["as_of"] == "2023-01-25")
 check("closes feed the existing volatility fn",
       prices.annualized_volatility(h["closes"]) is not None)
-fmp._get = make_get({"historical-price-full": {"historical": hist_rows[:5]}})
+fmp._get = make_get({"historical-price-eod": hist_rows[:5]})
 check("too few closes -> None (Merton degrades)", fmp._pull_history("TST") is None)
 
 # ----------------------------------------------------------------------------
@@ -177,12 +177,12 @@ check("blank sector -> None (falls back to snapshot/.info)", fmp._pull_profile("
 # ----------------------------------------------------------------------------
 print("analyst overlay: parses when premium data is present, None when all declined")
 fmp._get = make_get({
-    "upgrades-downgrades-consensus": [{"consensus": "Buy", "strongBuy": 5, "buy": 8,
-                                       "hold": 3, "sell": 1, "strongSell": 0}],
+    "grades-consensus": [{"consensus": "Buy", "strongBuy": 5, "buy": 8,
+                          "hold": 3, "sell": 1, "strongSell": 0}],
     "price-target-consensus": [{"targetConsensus": 220, "targetHigh": 260,
                                 "targetLow": 180, "targetMedian": 225}],
-    "analyst-estimates": [{"date": "2024-12-31", "estimatedEpsAvg": 6.5,
-                           "estimatedRevenueAvg": 400000}],
+    "analyst-estimates": [{"date": "2024-12-31", "epsAvg": 6.5,
+                           "revenueAvg": 400000}],
 })
 ov = fmp._pull_analyst("TST")
 check("consensus rating parsed", ov["consensus"]["rating"] == "Buy")
